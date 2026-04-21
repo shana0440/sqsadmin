@@ -218,6 +218,11 @@ export default function QueueList() {
                 <tr key={queue.url}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                     {queue.name}
+                    {queue.deadLetterSourceQueues.length > 0 && (
+                      <span className="ml-2 px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100">
+                        DLQ
+                      </span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                     {isFifo ? (

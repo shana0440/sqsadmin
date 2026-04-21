@@ -1,6 +1,7 @@
 import {
   SQSClient,
   ListQueuesCommand,
+  ListDeadLetterSourceQueuesCommand,
   SendMessageCommand,
   ReceiveMessageCommand,
   DeleteMessageCommand,
@@ -32,6 +33,7 @@ const client = new SQSClient(clientConfig);
 export type QueueInfo = {
   url: string;
   name: string;
+  deadLetterSourceQueues: string[];
   attributes?: Record<string, string>;
 };
 
@@ -48,6 +50,16 @@ export type PaginatedResponse<T> = {
   nextToken?: string;
 };
 
+export async function listDeadLetterSourceQueues(
+  queueUrl: string,
+): Promise<string[]> {
+  const command = new ListDeadLetterSourceQueuesCommand({
+    QueueUrl: queueUrl,
+  });
+  const response = await client.send(command);
+  return response.queueUrls || [];
+}
+
 export async function listQueues(
   nextToken?: string,
   limit: number = 10,
@@ -60,10 +72,13 @@ export async function listQueues(
     const response = await client.send(command);
 
     return {
-      items: (response.QueueUrls || []).map((url) => ({
-        url,
-        name: url.split('/').pop() || url,
-      })),
+      items: await Promise.all(
+        (response.QueueUrls || []).map(async (url) => ({
+          url,
+          name: url.split('/').pop() || url,
+          deadLetterSourceQueues: await listDeadLetterSourceQueues(url),
+        })),
+      ),
       nextToken: response.NextToken,
     };
   } catch (error) {
@@ -490,6 +505,7 @@ export async function createQueue(
       url: response.QueueUrl,
       name: queueName,
       attributes: queueAttributes,
+      deadLetterSourceQueues: [],
     };
 
     console.log('Returning queue info:', result);
