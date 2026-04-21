@@ -159,6 +159,7 @@ export default function QueueDetailPage({
           queueUrl={queueUrl}
           queueName={queueInfo.name}
           queueAttributes={queueInfo.attributes}
+          deadLetterSourceQueues={queueInfo.deadLetterSourceQueues}
         />
       </main>
 

@@ -8,17 +8,20 @@ import 'ace-builds/src-noconflict/mode-json';
 import 'ace-builds/src-noconflict/theme-github';
 import 'ace-builds/src-noconflict/theme-dracula';
 import 'ace-builds/src-noconflict/theme-tomorrow_night';
+import RedriveMessageModal from './RedriveMessageModal';
 
 interface QueueDetailProps {
   queueUrl: string;
   queueName: string;
   queueAttributes?: Record<string, string>;
+  deadLetterSourceQueues?: string[];
 }
 
 export default function QueueDetail({
   queueUrl,
   queueName,
   queueAttributes,
+  deadLetterSourceQueues = [],
 }: QueueDetailProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
@@ -168,6 +171,64 @@ export default function QueueDetail({
   const [deletingMessageIds, setDeletingMessageIds] = useState<Set<string>>(
     new Set(),
   );
+  const [redrivingMessageIds, setRedrivingMessageIds] = useState<Set<string>>(
+    new Set(),
+  );
+  const [selectedMessageForRedrive, setSelectedMessageForRedrive] =
+    useState<Message | null>(null);
+  const [redriveError, setRedriveError] = useState<string | null>(null);
+
+  const handleOpenRedriveModal = (message: Message) => {
+    setSelectedMessageForRedrive(message);
+    setRedriveError(null);
+  };
+
+  const handleCloseRedriveMessageModal = () => {
+    setSelectedMessageForRedrive(null);
+    setRedriveError(null);
+  };
+
+  const handleRedriveMessage = async (targetQueueUrl: string) => {
+    if (!selectedMessageForRedrive) {
+      return;
+    }
+
+    const messageId = selectedMessageForRedrive.id;
+
+    try {
+      setRedrivingMessageIds((prev) => new Set([...prev, messageId]));
+      setRedriveError(null);
+
+      const response = await fetch(`/api/queues/${queueUrl}/messages/redrive`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ messageId, targetQueueUrl }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        const errorMessage = errorData.error;
+
+        throw new Error(errorMessage);
+      }
+
+      setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
+      setSelectedMessageForRedrive(null);
+    } catch (err) {
+      setRedriveError(
+        err instanceof Error ? err.message : 'Failed to redrive message',
+      );
+      console.error('Error redriving message:', err);
+    } finally {
+      setRedrivingMessageIds((prev) => {
+        const updated = new Set(prev);
+        updated.delete(messageId);
+        return updated;
+      });
+    }
+  };
 
   const handleDeleteMessage = async (message: Message) => {
     try {
@@ -589,6 +650,21 @@ export default function QueueDetail({
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
+                                  handleOpenRedriveModal(message);
+                                }}
+                                disabled={
+                                  deadLetterSourceQueues.length === 0 ||
+                                  redrivingMessageIds.has(message.id)
+                                }
+                                className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 disabled:opacity-50 mr-4"
+                              >
+                                {redrivingMessageIds.has(message.id)
+                                  ? 'Redriving...'
+                                  : 'Redrive'}
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   handleDeleteMessage(message);
                                 }}
                                 disabled={deletingMessageIds.has(message.id)}
@@ -717,6 +793,20 @@ export default function QueueDetail({
           </div>
         </div>
       )}
+
+      <RedriveMessageModal
+        key={selectedMessageForRedrive?.id}
+        isOpen={!!selectedMessageForRedrive}
+        message={selectedMessageForRedrive}
+        deadLetterSourceQueues={deadLetterSourceQueues}
+        isSubmitting={
+          !!selectedMessageForRedrive &&
+          redrivingMessageIds.has(selectedMessageForRedrive.id)
+        }
+        error={redriveError}
+        onClose={handleCloseRedriveMessageModal}
+        onConfirm={handleRedriveMessage}
+      />
     </div>
   );
 }

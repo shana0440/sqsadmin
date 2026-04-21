@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import CloseButton from './CloseButton';
 
 interface DeleteQueueModalProps {
   isOpen: boolean;
@@ -69,26 +70,7 @@ export default function DeleteQueueModal({
             <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-white">
               Delete Queue
             </h3>
-            <button
-              type="button"
-              className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
-              onClick={onClose}
-            >
-              <span className="sr-only">Close</span>
-              <svg
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
+            <CloseButton onClose={onClose} />
           </div>
 
           <div className="mt-4">

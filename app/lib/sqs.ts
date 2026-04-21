@@ -431,6 +431,34 @@ export async function deleteMessage(
   }
 }
 
+export async function redriveMessage(
+  sourceQueueUrl: string,
+  targetQueueUrl: string,
+  messageId: string,
+) {
+  const message = await receiveMessageById(sourceQueueUrl, messageId);
+
+  if (!message) {
+    throw Error(
+      `Message with ID ${messageId} not found in queue ${sourceQueueUrl}`,
+    );
+  }
+
+  const commandInput: {
+    QueueUrl: string;
+    MessageBody: string;
+    MessageGroupId?: string;
+    MessageDeduplicationId?: string;
+  } = {
+    QueueUrl: targetQueueUrl,
+    MessageBody: message.body,
+  };
+
+  await client.send(new SendMessageCommand(commandInput));
+
+  await deleteMessage(sourceQueueUrl, message.receiptHandle);
+}
+
 export interface CreateQueueParams {
   queueName: string;
   isFifo?: boolean;

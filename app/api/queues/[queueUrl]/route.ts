@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getQueueAttributes } from '@/app/lib/sqs';
+import { getQueueAttributes, listDeadLetterSourceQueues } from '@/app/lib/sqs';
 
 export async function GET(
   request: NextRequest,
@@ -14,6 +14,8 @@ export async function GET(
 
     // Get queue attributes
     const attributes = await getQueueAttributes(decodedQueueUrl);
+    const deadLetterSourceQueues =
+      await listDeadLetterSourceQueues(decodedQueueUrl);
 
     // Extract queue name from URL
     const name = decodedQueueUrl.split('/').pop() || decodedQueueUrl;
@@ -22,6 +24,7 @@ export async function GET(
       url: decodedQueueUrl,
       name,
       attributes,
+      deadLetterSourceQueues,
     });
   } catch (error) {
     console.error('Error in GET /api/queues/[queueUrl]:', error);
