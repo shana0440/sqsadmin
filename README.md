@@ -89,6 +89,7 @@ This will start both the application and LocalStack. The application will be con
 ### Viewing Queues
 
 The home page displays a list of all your SQS queues with basic information such as:
+
 - Queue name
 - Queue type (Standard or FIFO)
 - Number of messages available
@@ -97,6 +98,7 @@ The home page displays a list of all your SQS queues with basic information such
 ### Creating Queues
 
 Click the "Create Queue" button to create a new SQS queue. You can configure:
+
 - Queue name
 - Queue type (Standard or FIFO)
 - Advanced settings like visibility timeout, message retention period, and delay seconds
@@ -104,6 +106,7 @@ Click the "Create Queue" button to create a new SQS queue. You can configure:
 ### Queue Details
 
 Click on a queue to view its details page, where you can:
+
 - Send new messages (plain text or JSON)
 - View existing messages in the queue
 - Delete messages from the queue
@@ -121,12 +124,12 @@ This is a [Next.js](https://nextjs.org) project with the following structure:
 
 ## Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `AWS_REGION` | AWS region to connect to | `us-east-1` |
-| `AWS_ACCESS_KEY_ID` | AWS access key | Required |
-| `AWS_SECRET_ACCESS_KEY` | AWS secret key | Required |
-| `SQS_ENDPOINT` | Custom SQS endpoint for local development | AWS SQS endpoint |
+| Variable                | Description                               | Default          |
+| ----------------------- | ----------------------------------------- | ---------------- |
+| `AWS_REGION`            | AWS region to connect to                  | `us-east-1`      |
+| `AWS_ACCESS_KEY_ID`     | AWS access key                            | Required         |
+| `AWS_SECRET_ACCESS_KEY` | AWS secret key                            | Required         |
+| `SQS_ENDPOINT`          | Custom SQS endpoint for local development | AWS SQS endpoint |
 
 ## Security Considerations
 

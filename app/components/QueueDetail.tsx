@@ -15,7 +15,11 @@ interface QueueDetailProps {
   queueAttributes?: Record<string, string>;
 }
 
-export default function QueueDetail({ queueUrl, queueName, queueAttributes }: QueueDetailProps) {
+export default function QueueDetail({
+  queueUrl,
+  queueName,
+  queueAttributes,
+}: QueueDetailProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +29,7 @@ export default function QueueDetail({ queueUrl, queueName, queueAttributes }: Qu
   const [refreshInterval, setRefreshInterval] = useState<number | null>(null); // Will be set in useEffect
   const [isValidJson, setIsValidJson] = useState(true);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc'); // Default to most recent first
-  
+
   // Check and determine if dark mode is active
   const checkDarkMode = useCallback(() => {
     return document.documentElement.classList.contains('dark');
@@ -35,16 +39,18 @@ export default function QueueDetail({ queueUrl, queueName, queueAttributes }: Qu
     try {
       setLoading(true);
       setError(null);
-      
+
       // The API expects the encoded queueUrl directly
       // Always use peek mode with a higher message limit (50 instead of default 10)
       // This helps ensure we get as many messages as possible
-      const response = await fetch(`/api/queues/${queueUrl}/messages?mode=peek&max=50`);
-      
+      const response = await fetch(
+        `/api/queues/${queueUrl}/messages?mode=peek&max=50`,
+      );
+
       if (!response.ok) {
         throw new Error(`Failed to fetch messages: ${response.statusText}`);
       }
-      
+
       const data = await response.json();
       setMessages(data);
     } catch (err) {
@@ -61,12 +67,12 @@ export default function QueueDetail({ queueUrl, queueName, queueAttributes }: Qu
   useEffect(() => {
     // Fetch messages on first page view
     fetchMessages();
-    
+
     // Initial dark mode check
     checkDarkMode();
-    
+
     // Auto-refresh disabled by default - user can enable if needed
-    
+
     // Create observer for theme changes
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
@@ -75,10 +81,10 @@ export default function QueueDetail({ queueUrl, queueName, queueAttributes }: Qu
         }
       });
     });
-    
+
     // Start observing the document element for class changes
     observer.observe(document.documentElement, { attributes: true });
-    
+
     // Cleanup when component unmounts
     return () => {
       if (refreshInterval) {
@@ -102,17 +108,20 @@ export default function QueueDetail({ queueUrl, queueName, queueAttributes }: Qu
     try {
       setSendingMessage(true);
       setSendError(null);
-      
+
       // Try to parse as JSON
       let messageBody;
       try {
         messageBody = JSON.parse(messageInput);
       } catch (e) {
-        setSendError('Invalid JSON format: ' + (e instanceof Error ? e.message : 'Unknown error'));
+        setSendError(
+          'Invalid JSON format: ' +
+            (e instanceof Error ? e.message : 'Unknown error'),
+        );
         setSendingMessage(false);
         return;
       }
-      
+
       // The API expects the encoded queueUrl directly
       const response = await fetch(`/api/queues/${queueUrl}/messages`, {
         method: 'POST',
@@ -121,23 +130,25 @@ export default function QueueDetail({ queueUrl, queueName, queueAttributes }: Qu
         },
         body: JSON.stringify({ message: messageBody }),
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to send message');
       }
-      
+
       // Clear the input and refetch messages
       setMessageInput('{}');
       fetchMessages();
     } catch (err) {
-      setSendError(err instanceof Error ? err.message : 'Failed to send message');
+      setSendError(
+        err instanceof Error ? err.message : 'Failed to send message',
+      );
       console.error('Error sending message:', err);
     } finally {
       setSendingMessage(false);
     }
   };
-  
+
   const validateJson = (input: string) => {
     try {
       JSON.parse(input);
@@ -146,18 +157,23 @@ export default function QueueDetail({ queueUrl, queueName, queueAttributes }: Qu
       return true;
     } catch (e) {
       setIsValidJson(false);
-      setSendError('Invalid JSON format: ' + (e instanceof Error ? e.message : 'Unknown error'));
+      setSendError(
+        'Invalid JSON format: ' +
+          (e instanceof Error ? e.message : 'Unknown error'),
+      );
       return false;
     }
   };
 
-  const [deletingMessageIds, setDeletingMessageIds] = useState<Set<string>>(new Set());
-  
+  const [deletingMessageIds, setDeletingMessageIds] = useState<Set<string>>(
+    new Set(),
+  );
+
   const handleDeleteMessage = async (message: Message) => {
     try {
       const messageId = message.id;
-      setDeletingMessageIds(prev => new Set([...prev, messageId]));
-      
+      setDeletingMessageIds((prev) => new Set([...prev, messageId]));
+
       // The API expects the encoded queueUrl directly
       const response = await fetch(`/api/queues/${queueUrl}/messages`, {
         method: 'DELETE',
@@ -166,20 +182,19 @@ export default function QueueDetail({ queueUrl, queueName, queueAttributes }: Qu
         },
         body: JSON.stringify({ messageId, peekMode: true }), // Always use peek mode
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to delete message');
       }
-      
+
       // Remove the message from the list
-      setMessages(messages.filter(msg => msg.id !== messageId));
-      
+      setMessages(messages.filter((msg) => msg.id !== messageId));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete message');
       console.error('Error deleting message:', err);
     } finally {
-      setDeletingMessageIds(prev => {
+      setDeletingMessageIds((prev) => {
         const updated = new Set(prev);
         updated.delete(message.id);
         return updated;
@@ -192,7 +207,7 @@ export default function QueueDetail({ queueUrl, queueName, queueAttributes }: Qu
       // Try to parse as JSON and format it
       const parsedBody = JSON.parse(body);
       const formattedJson = JSON.stringify(parsedBody, null, 2);
-      
+
       return (
         <div className="rounded overflow-hidden">
           <AceEditor
@@ -222,7 +237,11 @@ export default function QueueDetail({ queueUrl, queueName, queueAttributes }: Qu
       );
     } catch {
       // If it's not JSON, display as is
-      return <pre className="whitespace-pre-wrap font-mono bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 p-3 rounded">{body}</pre>;
+      return (
+        <pre className="whitespace-pre-wrap font-mono bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 p-3 rounded">
+          {body}
+        </pre>
+      );
     }
   };
 
@@ -231,67 +250,87 @@ export default function QueueDetail({ queueUrl, queueName, queueAttributes }: Qu
     // Check attributes to determine status
     const attributes = message.attributes || {};
     let status = 'Available';
-    let statusClass = 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100';
-    
+    let statusClass =
+      'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100';
+
     // Check if delayed
-    if (attributes.ApproximateFirstReceiveTimestamp && attributes.SentTimestamp) {
+    if (
+      attributes.ApproximateFirstReceiveTimestamp &&
+      attributes.SentTimestamp
+    ) {
       const sentTime = parseInt(attributes.SentTimestamp, 10);
-      const receiveTime = parseInt(attributes.ApproximateFirstReceiveTimestamp, 10);
-      
+      const receiveTime = parseInt(
+        attributes.ApproximateFirstReceiveTimestamp,
+        10,
+      );
+
       // If first receive time is significantly later than sent time, message was delayed
-      if (receiveTime - sentTime > 1000) { // More than 1 second delay
+      if (receiveTime - sentTime > 1000) {
+        // More than 1 second delay
         status = 'Delayed';
-        statusClass = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100';
+        statusClass =
+          'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100';
       }
     }
-    
+
     // Check for in-flight status (has been received but not deleted)
-    if (attributes.ApproximateReceiveCount && parseInt(attributes.ApproximateReceiveCount, 10) > 0) {
+    if (
+      attributes.ApproximateReceiveCount &&
+      parseInt(attributes.ApproximateReceiveCount, 10) > 0
+    ) {
       status = 'In Flight';
-      statusClass = 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100';
+      statusClass =
+        'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100';
     }
-    
+
     // Check if message is being deleted
     if (deletingMessageIds.has(message.id)) {
       status = 'Deleting';
       statusClass = 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100';
     }
-    
+
     return (
-      <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusClass}`}>
+      <span
+        className={`px-2 py-1 text-xs font-medium rounded-full ${statusClass}`}
+      >
         {status}
       </span>
     );
   };
-  
+
   // Get detailed information from the messages
   const getQueueStats = () => {
     const messageCount = messages.length;
-    const avgMessageSize = messageCount > 0 
-      ? messages.reduce((sum, msg) => sum + msg.body.length, 0) / messageCount 
-      : 0;
-    
+    const avgMessageSize =
+      messageCount > 0
+        ? messages.reduce((sum, msg) => sum + msg.body.length, 0) / messageCount
+        : 0;
+
     // Find the oldest message timestamp
     let oldestMessageTime = 'N/A';
     if (messageCount > 0) {
-      const timestamps = messages.map(msg => msg.timestamp || 0).filter(t => t > 0);
+      const timestamps = messages
+        .map((msg) => msg.timestamp || 0)
+        .filter((t) => t > 0);
       if (timestamps.length > 0) {
         const oldestTimestamp = Math.min(...timestamps);
         oldestMessageTime = new Date(oldestTimestamp).toLocaleString();
       }
     }
-    
+
     return {
       messageCount,
       avgMessageSize: Math.round(avgMessageSize),
       oldestMessage: oldestMessageTime,
-      activeRefresh: refreshInterval !== null
+      activeRefresh: refreshInterval !== null,
     };
   };
 
   const stats = getQueueStats();
 
-  const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
+  const [selectedMessageId, setSelectedMessageId] = useState<string | null>(
+    null,
+  );
   const [isProduceModalOpen, setIsProduceModalOpen] = useState(false);
 
   // Toggle message details
@@ -326,42 +365,57 @@ export default function QueueDetail({ queueUrl, queueName, queueAttributes }: Qu
           <div className="mt-5">
             <dl className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-4">
               <div className="sm:col-span-1">
-                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Messages Available</dt>
+                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Messages Available
+                </dt>
                 <dd className="mt-1 text-sm text-gray-900 dark:text-white font-semibold">
                   {queueAttributes?.ApproximateNumberOfMessages || '0'}
                 </dd>
               </div>
-              
+
               <div className="sm:col-span-1">
-                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Messages In Flight</dt>
+                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Messages In Flight
+                </dt>
                 <dd className="mt-1 text-sm text-gray-900 dark:text-white font-semibold">
-                  {queueAttributes?.ApproximateNumberOfMessagesNotVisible || '0'}
+                  {queueAttributes?.ApproximateNumberOfMessagesNotVisible ||
+                    '0'}
                 </dd>
               </div>
-              
+
               <div className="sm:col-span-1">
-                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Delayed Messages</dt>
+                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Delayed Messages
+                </dt>
                 <dd className="mt-1 text-sm text-gray-900 dark:text-white font-semibold">
                   {queueAttributes?.ApproximateNumberOfMessagesDelayed || '0'}
                 </dd>
               </div>
-              
+
               <div className="sm:col-span-1">
-                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Queue Type</dt>
+                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Queue Type
+                </dt>
                 <dd className="mt-1 text-sm text-gray-900 dark:text-white">
-                  {queueAttributes?.FifoQueue === 'true' ? 
+                  {queueAttributes?.FifoQueue === 'true' ? (
                     <span className="px-2 py-1 text-xs font-medium rounded-full bg-indigo-100 text-indigo-800 dark:bg-indigo-800 dark:text-indigo-100">
                       FIFO
-                    </span> : 
+                    </span>
+                  ) : (
                     <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100">
                       Standard
-                    </span>}
+                    </span>
+                  )}
                 </dd>
               </div>
             </dl>
             <div className="mt-4 flex items-center">
-              <span className={`inline-block w-2 h-2 rounded-full mr-2 ${stats.activeRefresh ? 'bg-green-500' : 'bg-red-500'}`}></span>
-              <span className="text-sm text-gray-500 dark:text-gray-400">Auto-refresh: {stats.activeRefresh ? 'Active (5s)' : 'Disabled'}</span>
+              <span
+                className={`inline-block w-2 h-2 rounded-full mr-2 ${stats.activeRefresh ? 'bg-green-500' : 'bg-red-500'}`}
+              ></span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">
+                Auto-refresh: {stats.activeRefresh ? 'Active (5s)' : 'Disabled'}
+              </span>
               <button
                 type="button"
                 onClick={toggleAutoRefresh}
@@ -387,7 +441,9 @@ export default function QueueDetail({ queueUrl, queueName, queueAttributes }: Qu
         <div className="px-4 py-5 sm:p-6">
           <div className="flex justify-between items-center mb-4">
             <div>
-              <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-white">Messages</h3>
+              <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-white">
+                Messages
+              </h3>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 Viewing messages in peek mode (messages remain in the queue)
               </p>
@@ -397,8 +453,8 @@ export default function QueueDetail({ queueUrl, queueName, queueAttributes }: Qu
                 type="button"
                 onClick={() => setSortDirection('asc')}
                 className={`relative inline-flex items-center px-3 py-1 rounded-l-md border border-gray-300 dark:border-gray-600 text-sm font-medium ${
-                  sortDirection === 'asc' 
-                    ? 'bg-indigo-100 dark:bg-indigo-800 text-indigo-700 dark:text-indigo-100' 
+                  sortDirection === 'asc'
+                    ? 'bg-indigo-100 dark:bg-indigo-800 text-indigo-700 dark:text-indigo-100'
                     : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                 }`}
               >
@@ -408,8 +464,8 @@ export default function QueueDetail({ queueUrl, queueName, queueAttributes }: Qu
                 type="button"
                 onClick={() => setSortDirection('desc')}
                 className={`relative inline-flex items-center px-3 py-1 rounded-r-md border border-gray-300 dark:border-gray-600 text-sm font-medium ${
-                  sortDirection === 'desc' 
-                    ? 'bg-indigo-100 dark:bg-indigo-800 text-indigo-700 dark:text-indigo-100' 
+                  sortDirection === 'desc'
+                    ? 'bg-indigo-100 dark:bg-indigo-800 text-indigo-700 dark:text-indigo-100'
                     : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                 }`}
               >
@@ -417,23 +473,25 @@ export default function QueueDetail({ queueUrl, queueName, queueAttributes }: Qu
               </button>
             </div>
           </div>
-          
+
           {error && (
             <div className="mt-2 text-sm text-red-600 dark:text-red-400">
               {error}
             </div>
           )}
-          
+
           {/* Loading indicator */}
           {loading && (
             <div className="mt-2 mb-4">
               <div className="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded overflow-hidden">
                 <div className="h-1 bg-indigo-600 dark:bg-indigo-500 animate-[loading_2s_ease-in-out_infinite]"></div>
               </div>
-              <p className="text-sm text-center text-gray-500 dark:text-gray-400 mt-1">Loading messages...</p>
+              <p className="text-sm text-center text-gray-500 dark:text-gray-400 mt-1">
+                Loading messages...
+              </p>
             </div>
           )}
-          
+
           {!loading && messages.length === 0 ? (
             <div className="text-sm text-gray-500 dark:text-gray-400 py-8 text-center">
               No messages available in this queue.
@@ -443,22 +501,40 @@ export default function QueueDetail({ queueUrl, queueName, queueAttributes }: Qu
               <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                 <thead className="bg-gray-50 dark:bg-gray-800">
                   <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                    >
                       Offset
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                    >
                       Timestamp
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                    >
                       Message ID
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                    >
                       Status
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                    >
                       Preview
                     </th>
-                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                    >
                       Actions
                     </th>
                   </tr>
@@ -468,21 +544,27 @@ export default function QueueDetail({ queueUrl, queueName, queueAttributes }: Qu
                     .sort((a, b) => {
                       const aTimestamp = a.timestamp || 0;
                       const bTimestamp = b.timestamp || 0;
-                      return sortDirection === 'asc' ? aTimestamp - bTimestamp : bTimestamp - aTimestamp;
+                      return sortDirection === 'asc'
+                        ? aTimestamp - bTimestamp
+                        : bTimestamp - aTimestamp;
                     })
                     .map((message, index) => {
                       // Create preview of message body
-                      let preview = "{}";
+                      let preview = '{}';
                       try {
                         const parsed = JSON.parse(message.body);
-                        preview = JSON.stringify(parsed).substring(0, 60) + (JSON.stringify(parsed).length > 60 ? '...' : '');
+                        preview =
+                          JSON.stringify(parsed).substring(0, 60) +
+                          (JSON.stringify(parsed).length > 60 ? '...' : '');
                       } catch {
-                        preview = message.body.substring(0, 60) + (message.body.length > 60 ? '...' : '');
+                        preview =
+                          message.body.substring(0, 60) +
+                          (message.body.length > 60 ? '...' : '');
                       }
-                      
+
                       return (
                         <Fragment key={message.id}>
-                          <tr 
+                          <tr
                             className={`hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer ${selectedMessageId === message.id ? 'bg-gray-50 dark:bg-gray-700' : ''}`}
                             onClick={() => toggleMessageDetails(message.id)}
                           >
@@ -490,8 +572,8 @@ export default function QueueDetail({ queueUrl, queueName, queueAttributes }: Qu
                               {index + 1}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                              {message.timestamp 
-                                ? new Date(message.timestamp).toLocaleString() 
+                              {message.timestamp
+                                ? new Date(message.timestamp).toLocaleString()
                                 : 'N/A'}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-500 dark:text-gray-400 max-w-[350px] truncate">
@@ -512,7 +594,9 @@ export default function QueueDetail({ queueUrl, queueName, queueAttributes }: Qu
                                 disabled={deletingMessageIds.has(message.id)}
                                 className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 disabled:opacity-50"
                               >
-                                {deletingMessageIds.has(message.id) ? 'Deleting...' : 'Delete'}
+                                {deletingMessageIds.has(message.id)
+                                  ? 'Deleting...'
+                                  : 'Delete'}
                               </button>
                             </td>
                           </tr>
@@ -536,27 +620,41 @@ export default function QueueDetail({ queueUrl, queueName, queueAttributes }: Qu
           )}
         </div>
       </div>
-      
+
       {/* Produce Message Side Drawer */}
       {isProduceModalOpen && (
         <div className="fixed inset-0 overflow-hidden z-50">
           <div className="absolute inset-0 overflow-hidden">
-            <div className="absolute inset-0 bg-gray-900 opacity-50 dark:bg-gray-900 dark:opacity-75 transition-opacity"
-                 onClick={toggleProduceModal}></div>
+            <div
+              className="absolute inset-0 bg-gray-900 opacity-50 dark:bg-gray-900 dark:opacity-75 transition-opacity"
+              onClick={toggleProduceModal}
+            ></div>
             <div className="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10">
               <div className="pointer-events-auto relative w-screen max-w-md">
                 <div className="flex h-full flex-col overflow-y-scroll bg-white dark:bg-gray-800 shadow-xl">
                   <div className="px-4 py-6 sm:px-6">
                     <div className="flex items-start justify-between">
-                      <h2 className="text-lg font-medium text-gray-900 dark:text-white">Send Message to {queueName}</h2>
+                      <h2 className="text-lg font-medium text-gray-900 dark:text-white">
+                        Send Message to {queueName}
+                      </h2>
                       <button
                         type="button"
                         onClick={toggleProduceModal}
                         className="rounded-md text-gray-400 hover:text-gray-500 focus:outline-none"
                       >
                         <span className="sr-only">Close panel</span>
-                        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        <svg
+                          className="h-6 w-6"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth="1.5"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M6 18L18 6M6 6l12 12"
+                          />
                         </svg>
                       </button>
                     </div>
@@ -604,7 +702,9 @@ export default function QueueDetail({ queueUrl, queueName, queueAttributes }: Qu
                             toggleProduceModal();
                           }
                         }}
-                        disabled={sendingMessage || !messageInput.trim() || !isValidJson}
+                        disabled={
+                          sendingMessage || !messageInput.trim() || !isValidJson
+                        }
                         className="inline-flex w-full justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
                       >
                         {sendingMessage ? 'Sending...' : 'Send Message'}

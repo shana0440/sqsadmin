@@ -1,6 +1,6 @@
 # SQS Admin GitHub Pages
 
-This directory contains the GitHub Pages content for the SQS Admin project. 
+This directory contains the GitHub Pages content for the SQS Admin project.
 
 The page is a standalone HTML/CSS/JS page that presents information about the SQS Admin project, including:
 
