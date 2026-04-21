@@ -8,7 +8,7 @@
     "dev:aws": "NODE_ENV=development NEXT_IGNORE_DEFAULT_ENV=true env-cmd -f .env.aws next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "format": "prettier --write ."
   },
   "dependencies": {
@@ -17,22 +17,21 @@
     "@headlessui/react": "^2.2.2",
     "@heroicons/react": "^2.2.0",
     "ace-builds": "^1.40.1",
-    "next": "15.3.1",
+    "next": "16.2.4",
     "postcss": "^8.5.3",
-    "react": "^19.0.0",
+    "react": "19.2.5",
     "react-ace": "^14.0.1",
-    "react-dom": "^19.0.0",
+    "react-dom": "19.2.5",
     "react-json-view-lite": "^2.4.1"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4.1.5",
     "@types/node": "20.19.39",
     "@types/react": "19.2.14",
-    "@types/react-dom": "^19",
+    "@types/react-dom": "19.2.3",
     "env-cmd": "^10.1.0",
     "eslint": "^9",
-    "eslint-config-next": "15.3.1",
+    "eslint-config-next": "16.2.4",
     "prettier": "^3.8.3",
     "tailwindcss": "^4.1.5",
     "typescript": "5.9.3"
