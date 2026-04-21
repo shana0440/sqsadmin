@@ -1,17 +1,29 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import useSWR from 'swr';
 import { QueueInfo } from '../lib/sqs';
 import Link from 'next/link';
 import CreateQueueModal from './CreateQueueModal';
 import DeleteQueueModal from './DeleteQueueModal';
 
+type QueueListResponse = {
+  items: QueueInfo[];
+  nextToken?: string;
+};
+
+const fetcher = async (url: string): Promise<QueueListResponse> => {
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch queues: ${response.statusText}`);
+  }
+
+  return response.json();
+};
+
 export default function QueueList() {
-  const [queues, setQueues] = useState<QueueInfo[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [nextToken, setNextToken] = useState<string | undefined>(undefined);
-  const [hasMore, setHasMore] = useState(false);
+  const [pageToken, setPageToken] = useState<string | undefined>(undefined);
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 10;
 
@@ -20,41 +32,24 @@ export default function QueueList() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedQueue, setSelectedQueue] = useState<QueueInfo | null>(null);
 
-  const fetchQueues = async (pageToken?: string) => {
-    try {
-      setLoading(true);
-      const url = new URL('/api/queues', window.location.origin);
-      if (pageToken) {
-        url.searchParams.append('nextToken', pageToken);
-      }
-      url.searchParams.append('limit', PAGE_SIZE.toString());
+  const query = pageToken
+    ? `/api/queues?nextToken=${encodeURIComponent(pageToken)}&limit=${PAGE_SIZE}`
+    : `/api/queues?limit=${PAGE_SIZE}`;
 
-      const response = await fetch(url.toString());
+  const { data, error, isLoading, mutate } = useSWR<QueueListResponse>(
+    query,
+    fetcher,
+  );
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch queues: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      setQueues(data.items);
-      setNextToken(data.nextToken);
-      setHasMore(!!data.nextToken);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch queues');
-      console.error('Error fetching queues:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchQueues();
-  }, []);
+  const queues = data?.items ?? [];
+  const nextToken = data?.nextToken;
+  const hasMore = !!nextToken;
+  const loading = isLoading;
 
   const handleNextPage = () => {
     if (nextToken) {
-      fetchQueues(nextToken);
-      setPage(page + 1);
+      setPageToken(nextToken);
+      setPage((currentPage) => currentPage + 1);
     }
   };
 
@@ -62,7 +57,7 @@ export default function QueueList() {
     // Unfortunately, SQS listing doesn't support going backwards in pagination
     // We'll have to start from the beginning and go forward
     if (page > 1) {
-      fetchQueues();
+      setPageToken(undefined);
       setPage(1);
     }
   };
@@ -76,7 +71,9 @@ export default function QueueList() {
   }
 
   if (error) {
-    return <div className="p-4 text-center text-red-500">Error: {error}</div>;
+    return (
+      <div className="p-4 text-center text-red-500">Error: {error.message}</div>
+    );
   }
 
   const handleOpenDeleteModal = (queue: QueueInfo) => {
@@ -85,11 +82,11 @@ export default function QueueList() {
   };
 
   const handleQueueCreated = () => {
-    fetchQueues();
+    mutate();
   };
 
   const handleQueueDeleted = () => {
-    fetchQueues();
+    mutate();
   };
 
   if (queues.length === 0 && !loading) {

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback, Fragment } from 'react';
+import { useState, Fragment, useMemo } from 'react';
+import useSWR from 'swr';
 import { Message } from '../lib/sqs';
 import 'react-json-view-lite/dist/index.css';
 import AceEditor from 'react-ace';
@@ -23,88 +24,49 @@ export default function QueueDetail({
   queueAttributes,
   deadLetterSourceQueues = [],
 }: QueueDetailProps) {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [messageInput, setMessageInput] = useState('{}');
   const [sendingMessage, setSendingMessage] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
-  const [refreshInterval, setRefreshInterval] = useState<number | null>(null); // Will be set in useEffect
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
   const [isValidJson, setIsValidJson] = useState(true);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc'); // Default to most recent first
 
-  // Check and determine if dark mode is active
-  const checkDarkMode = useCallback(() => {
-    return document.documentElement.classList.contains('dark');
-  }, []);
+  const fetcher = async (url: string): Promise<Message[]> => {
+    const response = await fetch(url);
 
-  const fetchMessages = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      // The API expects the encoded queueUrl directly
-      // Always use peek mode with a higher message limit (50 instead of default 10)
-      // This helps ensure we get as many messages as possible
-      const response = await fetch(
-        `/api/queues/${queueUrl}/messages?mode=peek&max=50`,
-      );
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch messages: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      setMessages(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch messages');
-      console.error('Error fetching messages:', err);
-    } finally {
-      // Small delay to ensure loader is visible for at least a moment
-      setTimeout(() => {
-        setLoading(false);
-      }, 300);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch messages: ${response.statusText}`);
     }
-  }, [queueUrl]);
 
-  useEffect(() => {
-    // Fetch messages on first page view
-    fetchMessages();
+    return response.json();
+  };
 
-    // Initial dark mode check
-    checkDarkMode();
-
-    // Auto-refresh disabled by default - user can enable if needed
-
-    // Create observer for theme changes
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.attributeName === 'class') {
-          checkDarkMode();
-        }
-      });
-    });
-
-    // Start observing the document element for class changes
-    observer.observe(document.documentElement, { attributes: true });
-
-    // Cleanup when component unmounts
-    return () => {
-      if (refreshInterval) {
-        clearInterval(refreshInterval);
-      }
-      observer.disconnect();
-    };
-  }, [queueUrl, checkDarkMode, fetchMessages, refreshInterval]);
+  const messagesUrl = `/api/queues/${queueUrl}/messages?mode=peek&max=50`;
+  const {
+    data: messages = [],
+    error: fetchError,
+    isLoading,
+    isValidating,
+    mutate,
+  } = useSWR<Message[]>(messagesUrl, fetcher, {
+    refreshInterval: autoRefreshEnabled ? 5000 : 0,
+  });
+  const loading = isLoading || isValidating;
+  const error = useMemo(() => {
+    if (actionError) {
+      return actionError;
+    }
+    if (fetchError) {
+      return fetchError instanceof Error
+        ? fetchError.message
+        : 'Failed to fetch messages';
+    }
+    return null;
+  }, [actionError, fetchError]);
 
   const toggleAutoRefresh = () => {
-    if (refreshInterval) {
-      clearInterval(refreshInterval);
-      setRefreshInterval(null);
-    } else {
-      const interval = window.setInterval(fetchMessages, 5000);
-      setRefreshInterval(interval as unknown as number);
-    }
+    setAutoRefreshEnabled((previous) => !previous);
   };
 
   const handleSendMessage = async () => {
@@ -141,7 +103,7 @@ export default function QueueDetail({
 
       // Clear the input and refetch messages
       setMessageInput('{}');
-      fetchMessages();
+      mutate();
     } catch (err) {
       setSendError(
         err instanceof Error ? err.message : 'Failed to send message',
@@ -214,7 +176,11 @@ export default function QueueDetail({
         throw new Error(errorMessage);
       }
 
-      setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
+      mutate(
+        (previous) =>
+          previous ? previous.filter((msg) => msg.id !== messageId) : [],
+        false,
+      );
       setSelectedMessageForRedrive(null);
     } catch (err) {
       setRedriveError(
@@ -250,9 +216,15 @@ export default function QueueDetail({
       }
 
       // Remove the message from the list
-      setMessages(messages.filter((msg) => msg.id !== messageId));
+      mutate(
+        (previous) =>
+          previous ? previous.filter((msg) => msg.id !== messageId) : [],
+        false,
+      );
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete message');
+      setActionError(
+        err instanceof Error ? err.message : 'Failed to delete message',
+      );
       console.error('Error deleting message:', err);
     } finally {
       setDeletingMessageIds((prev) => {
@@ -383,7 +355,7 @@ export default function QueueDetail({
       messageCount,
       avgMessageSize: Math.round(avgMessageSize),
       oldestMessage: oldestMessageTime,
-      activeRefresh: refreshInterval !== null,
+      activeRefresh: autoRefreshEnabled,
     };
   };
 
@@ -482,11 +454,11 @@ export default function QueueDetail({
                 onClick={toggleAutoRefresh}
                 className="ml-2 inline-flex items-center px-2 py-1 border border-gray-300 dark:border-gray-600 text-xs font-medium rounded text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               >
-                {refreshInterval ? 'Disable' : 'Enable'}
+                {autoRefreshEnabled ? 'Enable' : 'Disable'}
               </button>
               <button
                 type="button"
-                onClick={fetchMessages}
+                onClick={() => mutate()}
                 disabled={loading}
                 className="ml-2 inline-flex items-center px-2 py-1 border border-gray-300 dark:border-gray-600 text-xs font-medium rounded text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-50"
               >
@@ -496,7 +468,7 @@ export default function QueueDetail({
           </div>
         </div>
       </div>
-
+      {autoRefreshEnabled ? 'Disable' : 'Enable'}
       {/* Messages Table */}
       <div className="bg-white dark:bg-gray-800 shadow dark:shadow-gray-700 sm:rounded-lg">
         <div className="px-4 py-5 sm:p-6">

@@ -22,7 +22,8 @@
     "react": "19.2.5",
     "react-ace": "^14.0.1",
     "react-dom": "19.2.5",
-    "react-json-view-lite": "^2.4.1"
+    "react-json-view-lite": "^2.4.1",
+    "swr": "^2.4.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.5",
