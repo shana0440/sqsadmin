@@ -507,7 +507,6 @@ export async function createQueue(
     }
 
     console.log('Queue attributes:', attributes);
-    console.log('SQS client config:', client.config);
 
     // Create the queue
     const command = new CreateQueueCommand({
