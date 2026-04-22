@@ -7,13 +7,12 @@ A web-based administration tool for Amazon Simple Queue Service (SQS), built wit
 ## Features
 
 - View your SQS queues and their statistics in a paginated table
-- Create new Standard and FIFO queues with advanced configuration
 - Send JSON or text messages to queues
 - View messages in queues with syntax highlighting
 - Delete messages from queues
-- Delete queues when no longer needed
 - Auto-refresh message view
 - Dark mode support
+- Redrive message to dead letter queue sources
 
 ## Getting Started
 
@@ -97,14 +96,6 @@ The home page displays a list of all your SQS queues with basic information such
 - Number of messages available
 - Number of messages in flight (being processed)
 
-### Creating Queues
-
-Click the "Create Queue" button to create a new SQS queue. You can configure:
-
-- Queue name
-- Queue type (Standard or FIFO)
-- Advanced settings like visibility timeout, message retention period, and delay seconds
-
 ### Queue Details
 
 Click on a queue to view its details page, where you can:
@@ -113,7 +104,6 @@ Click on a queue to view its details page, where you can:
 - View existing messages in the queue with syntax highlighting
 - Delete messages from the queue
 - Enable auto-refresh to see new messages as they arrive
-- Delete the queue entirely
 
 ## Development
 

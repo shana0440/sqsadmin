@@ -1,8 +1,12 @@
 systems:
   demo:
+    # Queues accessible by the demo system
     - "demo-greeting-*"
 system_users:
+  # Admin has access to all queues
   admin:
+    # admin user emails
     - admin@example.com
   demo:
+    # Demo system user emails; restricted to queues declared in the demo system
     - demo@example.com
