@@ -25,7 +25,7 @@ const fetcher = async (url: string): Promise<QueueListResponse> => {
 export default function QueueList() {
   const [pageToken, setPageToken] = useState<string | undefined>(undefined);
   const [page, setPage] = useState(1);
-  const PAGE_SIZE = 10;
+  const PAGE_SIZE = 100;
 
   // Modal states
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);

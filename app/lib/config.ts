@@ -6,7 +6,7 @@ type QueueNamePrefix = string;
 type SystemName = string;
 type Email = string;
 
-type SystemConfig = Record<SystemName, QueueNamePrefix>;
+type SystemConfig = Record<SystemName, QueueNamePrefix[]>;
 type UserConfig = Record<SystemName, Email[]>;
 
 export type AppConfig = {
@@ -78,4 +78,23 @@ export function isUserAllowedToLogin(email: Email): boolean {
     }
   }
   return false;
+}
+
+export function getAllowedQueueNamePatternsByEmail(
+  email: Email,
+): QueueNamePrefix[] {
+  const isAdmin = Config.systemUsers.admin?.includes(email) ?? false;
+  if (isAdmin) {
+    return ['*'];
+  }
+
+  const matchedSystems = Object.entries(Config.systemUsers)
+    .filter(([, users]) => users.includes(email))
+    .map(([system]) => system);
+
+  const queueNamePatterns = matchedSystems.flatMap(
+    (system) => Config.systems[system] || [],
+  );
+
+  return Array.from(new Set(queueNamePatterns));
 }

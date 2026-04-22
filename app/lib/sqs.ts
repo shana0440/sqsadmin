@@ -50,6 +50,30 @@ export type PaginatedResponse<T> = {
   nextToken?: string;
 };
 
+function doesQueueNameMatchPattern(
+  queueName: string,
+  pattern: string,
+): boolean {
+  const regex = new RegExp(`^${pattern.trim().replaceAll('*', '.*')}$`);
+  return regex.test(queueName);
+}
+
+function filterQueueUrlsByPatterns(
+  queueUrls: string[],
+  queueNamePatterns: string[] = [],
+): string[] {
+  if (queueNamePatterns.length === 0) {
+    return queueUrls;
+  }
+
+  return queueUrls.filter((url) => {
+    const queueName = url.split('/').pop() || url;
+    return queueNamePatterns.some((pattern) =>
+      doesQueueNameMatchPattern(queueName, pattern),
+    );
+  });
+}
+
 export async function listDeadLetterSourceQueues(
   queueUrl: string,
 ): Promise<string[]> {
@@ -62,7 +86,8 @@ export async function listDeadLetterSourceQueues(
 
 export async function listQueues(
   nextToken?: string,
-  limit: number = 10,
+  limit: number = 100,
+  queueNamePatterns: string[] = [],
 ): Promise<PaginatedResponse<QueueInfo>> {
   try {
     const command = new ListQueuesCommand({
@@ -70,10 +95,14 @@ export async function listQueues(
       NextToken: nextToken,
     });
     const response = await client.send(command);
+    const filteredQueueUrls = filterQueueUrlsByPatterns(
+      response.QueueUrls || [],
+      queueNamePatterns,
+    );
 
     return {
       items: await Promise.all(
-        (response.QueueUrls || []).map(async (url) => ({
+        filteredQueueUrls.map(async (url) => ({
           url,
           name: url.split('/').pop() || url,
           deadLetterSourceQueues: await listDeadLetterSourceQueues(url),

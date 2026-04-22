@@ -1,4 +1,4 @@
-import { NextAuthOptions } from 'next-auth';
+import { getServerSession, NextAuthOptions } from 'next-auth';
 import CognitoProvider from 'next-auth/providers/cognito';
 import { isUserAllowedToLogin } from '@/app/lib/config';
 
@@ -23,3 +23,9 @@ export const authOptions: NextAuthOptions = {
     },
   },
 };
+
+export async function authUserEmail(): Promise<string | null> {
+  const session = await getServerSession(authOptions);
+  const email = session?.user?.email ?? null;
+  return email;
+}
