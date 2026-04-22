@@ -1,0 +1,8 @@
+systems:
+  demo:
+    - "demo-greeting-*"
+system_users:
+  admin:
+    - admin@example.com
+  demo:
+    - demo@example.com
