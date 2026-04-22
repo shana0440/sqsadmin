@@ -69,10 +69,21 @@ function loadConfig(): AppConfig {
   return parseConfig(config);
 }
 
-const Config = loadConfig();
+let cachedConfig: AppConfig | null = null;
+
+function getConfig(): AppConfig {
+  if (cachedConfig) {
+    return cachedConfig;
+  }
+
+  cachedConfig = loadConfig();
+  return cachedConfig;
+}
 
 export function isUserAllowedToLogin(email: Email): boolean {
-  for (const users of Object.values(Config.systemUsers)) {
+  const config = getConfig();
+
+  for (const users of Object.values(config.systemUsers)) {
     if (users.includes(email)) {
       return true;
     }
@@ -83,17 +94,19 @@ export function isUserAllowedToLogin(email: Email): boolean {
 export function getAllowedQueueNamePatternsByEmail(
   email: Email,
 ): QueueNamePrefix[] {
-  const isAdmin = Config.systemUsers.admin?.includes(email) ?? false;
+  const config = getConfig();
+
+  const isAdmin = config.systemUsers.admin?.includes(email) ?? false;
   if (isAdmin) {
     return ['*'];
   }
 
-  const matchedSystems = Object.entries(Config.systemUsers)
+  const matchedSystems = Object.entries(config.systemUsers)
     .filter(([, users]) => users.includes(email))
     .map(([system]) => system);
 
   const queueNamePatterns = matchedSystems.flatMap(
-    (system) => Config.systems[system] || [],
+    (system) => config.systems[system] || [],
   );
 
   return Array.from(new Set(queueNamePatterns));
