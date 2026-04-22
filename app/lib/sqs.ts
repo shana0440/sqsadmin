@@ -11,6 +11,7 @@ import {
 } from '@aws-sdk/client-sqs';
 
 import { SQSClientConfig } from '@aws-sdk/client-sqs';
+import { doesQueueNameMatchPattern } from './permission';
 
 // Configure SQS client
 const clientConfig: SQSClientConfig = {
@@ -27,7 +28,6 @@ if (process.env.SQS_ENDPOINT) {
   };
 }
 
-console.log('SQS Client Config:', JSON.stringify(clientConfig, null, 2));
 const client = new SQSClient(clientConfig);
 
 export type QueueInfo = {
@@ -49,14 +49,6 @@ export type PaginatedResponse<T> = {
   items: T[];
   nextToken?: string;
 };
-
-function doesQueueNameMatchPattern(
-  queueName: string,
-  pattern: string,
-): boolean {
-  const regex = new RegExp(`^${pattern.trim().replaceAll('*', '.*')}$`);
-  return regex.test(queueName);
-}
 
 function filterQueueUrlsByPatterns(
   queueUrls: string[],
