@@ -1,4 +1,4 @@
-FROM node:18-alpine AS base
+FROM node:24-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
@@ -50,14 +50,5 @@ USER nextjs
 EXPOSE 8086
 
 ENV PORT 8086
-# Set hostname to localhost
-ENV HOSTNAME "0.0.0.0"
 
-# Add default environment variables for AWS
-ENV AWS_REGION=us-east-1
-ENV AWS_ACCESS_KEY_ID=test
-ENV AWS_SECRET_ACCESS_KEY=test
-# SQS_ENDPOINT can be overridden when running the container
-ENV SQS_ENDPOINT=http://localhost:4566
-
-CMD ["node", "server.js"]
+CMD ["npm", "run", "start"]
