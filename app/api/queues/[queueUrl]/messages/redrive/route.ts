@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { redriveMessage } from '@/app/lib/sqs';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(
   request: NextRequest,
@@ -29,10 +29,12 @@ export async function POST(
 
     await redriveMessage(decodedQueueUrl, targetQueueUrl, messageId);
     return NextResponse.json({ success: true });
-  } catch {
-    return NextResponse.json(
-      { error: 'Failed to redrive message' },
-      { status: 500 },
-    );
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error
+        ? `Failed to redrive message: ${error.message}`
+        : 'Failed to redrive message';
+
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

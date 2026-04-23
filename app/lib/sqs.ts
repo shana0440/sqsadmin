@@ -456,7 +456,16 @@ export async function redriveMessage(
 
   await client.send(new SendMessageCommand(commandInput));
 
-  await deleteMessage(sourceQueueUrl, message.receiptHandle);
+  const deletedFromSourceQueue = await deleteMessage(
+    sourceQueueUrl,
+    message.receiptHandle,
+  );
+
+  if (!deletedFromSourceQueue) {
+    throw new Error(
+      `Message ${messageId} was sent to ${targetQueueUrl} but could not be deleted from ${sourceQueueUrl}. Avoid retrying redrive to prevent duplicates.`,
+    );
+  }
 }
 
 export interface CreateQueueParams {
