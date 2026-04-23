@@ -23,6 +23,7 @@ const fetcher = async (url: string): Promise<QueueListResponse> => {
 export default function QueueList() {
   const [pageToken, setPageToken] = useState<string | undefined>(undefined);
   const [page, setPage] = useState(1);
+  const [showDlqOnly, setShowDlqOnly] = useState(true);
   const PAGE_SIZE = 100;
 
   const query = pageToken
@@ -31,7 +32,10 @@ export default function QueueList() {
 
   const { data, error, isLoading } = useSWR<QueueListResponse>(query, fetcher);
 
-  const queues = data?.items ?? [];
+  const allQueues = data?.items ?? [];
+  const queues = showDlqOnly
+    ? allQueues.filter((q) => q.deadLetterSourceQueues.length > 0)
+    : allQueues;
   const nextToken = data?.nextToken;
   const hasMore = !!nextToken;
   const loading = isLoading;
@@ -98,6 +102,16 @@ export default function QueueList() {
         <h2 className="text-lg font-medium text-gray-900 dark:text-white">
           Your Queues
         </h2>
+        <button
+          onClick={() => setShowDlqOnly(!showDlqOnly)}
+          className={`px-3 py-1.5 text-sm font-medium rounded-md border cursor-pointer ${
+            showDlqOnly
+              ? 'bg-red-100 text-red-800 border-red-300 dark:bg-red-900 dark:text-red-200 dark:border-red-700'
+              : 'bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600'
+          }`}
+        >
+          {showDlqOnly ? 'Showing DLQ Only' : 'Showing All Queues'}
+        </button>
       </div>
 
       <div className="overflow-x-auto">
