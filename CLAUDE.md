@@ -7,6 +7,7 @@ This document provides comprehensive information needed for working on the SQS A
 SQS Admin is a web-based administration tool for Amazon Simple Queue Service (SQS), built with Next.js. It allows users to view, create, and manage SQS queues through a user-friendly interface.
 
 **Key Features:**
+
 - View SQS queues and their statistics
 - Create Standard and FIFO queues with custom configurations
 - Send and view JSON/text messages
@@ -51,13 +52,13 @@ SQS Admin is a web-based administration tool for Amazon Simple Queue Service (SQ
 
 The application uses the following environment variables:
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `AWS_REGION` | AWS region to connect to | `us-east-1` |
-| `AWS_ACCESS_KEY_ID` | AWS access key | `test` for development |
-| `AWS_SECRET_ACCESS_KEY` | AWS secret key | `test` for development |
-| `SQS_ENDPOINT` | Custom SQS endpoint URL | `http://localhost:4566` for LocalStack |
-| `PORT` | Server port for the application | `8086` |
+| Variable                | Description                     | Default                                |
+| ----------------------- | ------------------------------- | -------------------------------------- |
+| `AWS_REGION`            | AWS region to connect to        | `us-east-1`                            |
+| `AWS_ACCESS_KEY_ID`     | AWS access key                  | `test` for development                 |
+| `AWS_SECRET_ACCESS_KEY` | AWS secret key                  | `test` for development                 |
+| `SQS_ENDPOINT`          | Custom SQS endpoint URL         | `http://localhost:4566` for LocalStack |
+| `PORT`                  | Server port for the application | `8086`                                 |
 
 ## Development Setup
 
@@ -69,11 +70,13 @@ The application uses the following environment variables:
 ### Running Locally
 
 1. Install dependencies:
+
    ```bash
    npm install
    ```
 
 2. Create a `.env.local` file with configuration (optional):
+
    ```
    AWS_REGION=us-east-1
    AWS_ACCESS_KEY_ID=your_access_key_or_test
@@ -82,6 +85,7 @@ The application uses the following environment variables:
    ```
 
 3. Start the development server:
+
    ```bash
    npm run dev
    ```
@@ -137,7 +141,7 @@ The editor is configured with the "dracula" theme which works well in both light
 
 The application has been configured to run on port 8086:
 
-1. In `Dockerfile`: 
+1. In `Dockerfile`:
    - `EXPOSE 8086`
    - `ENV PORT 8086`
 
@@ -151,11 +155,13 @@ When developing, the application will be available at http://localhost:8086.
 For local testing without AWS credentials:
 
 1. Start LocalStack using Docker Compose:
+
    ```bash
    docker-compose up localstack
    ```
 
 2. Configure the application to use LocalStack by setting:
+
    ```
    SQS_ENDPOINT=http://localhost:4566
    ```

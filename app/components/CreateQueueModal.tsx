@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { CreateQueueParams } from '../lib/sqs';
+import CloseButton from './CloseButton';
 
 interface CreateQueueModalProps {
   isOpen: boolean;
@@ -9,7 +10,11 @@ interface CreateQueueModalProps {
   onSuccess: () => void;
 }
 
-export default function CreateQueueModal({ isOpen, onClose, onSuccess }: CreateQueueModalProps) {
+export default function CreateQueueModal({
+  isOpen,
+  onClose,
+  onSuccess,
+}: CreateQueueModalProps) {
   const [queueName, setQueueName] = useState('');
   const [isFifo, setIsFifo] = useState(false);
   const [delaySeconds, setDelaySeconds] = useState('');
@@ -23,48 +28,48 @@ export default function CreateQueueModal({ isOpen, onClose, onSuccess }: CreateQ
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log('Form submitted');
-    
+
     if (!queueName.trim()) {
       setError('Queue name is required');
       console.log('Error: Queue name is required');
       return;
     }
-    
+
     // Add .fifo suffix if it's a FIFO queue and doesn't already have it
     let formattedQueueName = queueName;
     if (isFifo && !queueName.endsWith('.fifo')) {
       formattedQueueName = `${queueName}.fifo`;
     }
     console.log('Queue name formatted:', formattedQueueName);
-    
+
     const params: CreateQueueParams = {
       queueName: formattedQueueName,
       isFifo,
     };
-    
+
     // Add optional parameters if they are set
     if (delaySeconds) {
       params.delaySeconds = Number(delaySeconds);
     }
-    
+
     if (messageRetentionPeriod) {
       params.messageRetentionPeriod = Number(messageRetentionPeriod);
     }
-    
+
     if (visibilityTimeout) {
       params.visibilityTimeout = Number(visibilityTimeout);
     }
-    
+
     if (maxMessageSize) {
       params.maxMessageSize = Number(maxMessageSize);
     }
-    
+
     try {
       setIsSubmitting(true);
       setError(null);
-      
+
       console.log('Submitting queue creation request with params:', params);
-      
+
       const response = await fetch('/api/queues/create', {
         method: 'POST',
         headers: {
@@ -72,18 +77,18 @@ export default function CreateQueueModal({ isOpen, onClose, onSuccess }: CreateQ
         },
         body: JSON.stringify(params),
       });
-      
+
       console.log('Response status:', response.status);
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         console.error('Server returned error:', errorData);
         throw new Error(errorData.error || 'Failed to create queue');
       }
-      
+
       const result = await response.json();
       console.log('Queue created successfully:', result);
-      
+
       // Reset form
       setQueueName('');
       setIsFifo(false);
@@ -92,11 +97,10 @@ export default function CreateQueueModal({ isOpen, onClose, onSuccess }: CreateQ
       setVisibilityTimeout('');
       setMaxMessageSize('');
       setShowAdvanced(false);
-      
+
       // Close modal and refresh queue list
       onSuccess();
       onClose();
-      
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create queue');
       console.error('Error creating queue:', err);
@@ -104,13 +108,13 @@ export default function CreateQueueModal({ isOpen, onClose, onSuccess }: CreateQ
       setIsSubmitting(false);
     }
   };
-  
+
   if (!isOpen) return null;
-  
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen p-4 text-center">
-        <div 
+        <div
           className="fixed inset-0 bg-gray-500 opacity-75 dark:bg-gray-800 dark:opacity-75 transition-opacity"
           onClick={onClose}
         ></div>
@@ -120,21 +124,15 @@ export default function CreateQueueModal({ isOpen, onClose, onSuccess }: CreateQ
             <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-white">
               Create New Queue
             </h3>
-            <button
-              type="button"
-              className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
-              onClick={onClose}
-            >
-              <span className="sr-only">Close</span>
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+            <CloseButton onClose={onClose} />
           </div>
-          
+
           <form onSubmit={handleSubmit} className="mt-4">
             <div className="mb-4">
-              <label htmlFor="queueName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label
+                htmlFor="queueName"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
                 Queue Name *
               </label>
               <input
@@ -148,11 +146,12 @@ export default function CreateQueueModal({ isOpen, onClose, onSuccess }: CreateQ
               />
               {isFifo && !queueName.endsWith('.fifo') && (
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  Note: &quot;.fifo&quot; will be automatically appended to the queue name.
+                  Note: &quot;.fifo&quot; will be automatically appended to the
+                  queue name.
                 </p>
               )}
             </div>
-            
+
             <div className="mb-4">
               <div className="flex items-center">
                 <input
@@ -162,15 +161,19 @@ export default function CreateQueueModal({ isOpen, onClose, onSuccess }: CreateQ
                   onChange={(e) => setIsFifo(e.target.checked)}
                   className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
                 />
-                <label htmlFor="isFifo" className="ml-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label
+                  htmlFor="isFifo"
+                  className="ml-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
                   FIFO Queue
                 </label>
               </div>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                FIFO (First-In-First-Out) queues preserve the order of messages and guarantee exactly-once processing.
+                FIFO (First-In-First-Out) queues preserve the order of messages
+                and guarantee exactly-once processing.
               </p>
             </div>
-            
+
             <div className="mb-4">
               <button
                 type="button"
@@ -178,22 +181,30 @@ export default function CreateQueueModal({ isOpen, onClose, onSuccess }: CreateQ
                 className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 flex items-center"
               >
                 {showAdvanced ? 'Hide' : 'Show'} Advanced Options
-                <svg 
-                  className={`ml-1 h-4 w-4 transform ${showAdvanced ? 'rotate-180' : ''}`} 
-                  fill="none" 
-                  viewBox="0 0 24 24" 
+                <svg
+                  className={`ml-1 h-4 w-4 transform ${showAdvanced ? 'rotate-180' : ''}`}
+                  fill="none"
+                  viewBox="0 0 24 24"
                   stroke="currentColor"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M19 9l-7 7-7-7"
+                  />
                 </svg>
               </button>
             </div>
-            
+
             {showAdvanced && (
               <div className="border dark:border-gray-700 rounded-md p-4 mb-4 space-y-4">
                 {!isFifo && (
                   <div>
-                    <label htmlFor="delaySeconds" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <label
+                      htmlFor="delaySeconds"
+                      className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                    >
                       Delay Seconds
                     </label>
                     <input
@@ -207,13 +218,17 @@ export default function CreateQueueModal({ isOpen, onClose, onSuccess }: CreateQ
                       placeholder="0"
                     />
                     <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                      The time in seconds that the delivery of all messages in the queue will be delayed (0-900 seconds).
+                      The time in seconds that the delivery of all messages in
+                      the queue will be delayed (0-900 seconds).
                     </p>
                   </div>
                 )}
-                
+
                 <div>
-                  <label htmlFor="messageRetentionPeriod" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label
+                    htmlFor="messageRetentionPeriod"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
                     Message Retention Period (seconds)
                   </label>
                   <input
@@ -227,12 +242,16 @@ export default function CreateQueueModal({ isOpen, onClose, onSuccess }: CreateQ
                     placeholder="345600" // 4 days
                   />
                   <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    The length of time in seconds that messages will be retained (60-1,209,600 seconds / 1 minute to 14 days).
+                    The length of time in seconds that messages will be retained
+                    (60-1,209,600 seconds / 1 minute to 14 days).
                   </p>
                 </div>
-                
+
                 <div>
-                  <label htmlFor="visibilityTimeout" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label
+                    htmlFor="visibilityTimeout"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
                     Visibility Timeout (seconds)
                   </label>
                   <input
@@ -246,12 +265,16 @@ export default function CreateQueueModal({ isOpen, onClose, onSuccess }: CreateQ
                     placeholder="30"
                   />
                   <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    The period of time during which a message is hidden after being received (0-43,200 seconds / 0 seconds to 12 hours).
+                    The period of time during which a message is hidden after
+                    being received (0-43,200 seconds / 0 seconds to 12 hours).
                   </p>
                 </div>
-                
+
                 <div>
-                  <label htmlFor="maxMessageSize" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label
+                    htmlFor="maxMessageSize"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
                     Maximum Message Size (bytes)
                   </label>
                   <input
@@ -265,18 +288,19 @@ export default function CreateQueueModal({ isOpen, onClose, onSuccess }: CreateQ
                     placeholder="262144"
                   />
                   <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    The maximum message size in bytes (1,024-262,144 bytes / 1 KB to 256 KB).
+                    The maximum message size in bytes (1,024-262,144 bytes / 1
+                    KB to 256 KB).
                   </p>
                 </div>
               </div>
             )}
-            
+
             {error && (
               <div className="mb-4 text-sm text-red-600 dark:text-red-400">
                 {error}
               </div>
             )}
-            
+
             <div className="mt-6 flex justify-end space-x-3">
               <button
                 type="button"
