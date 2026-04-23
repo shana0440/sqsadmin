@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { getAuthUserEmail } from '~/utils/session.server'
-import { canAccessQueue } from '~/lib/permission'
-import { redriveMessage } from '~/lib/sqs'
+import { getAuthUserEmail } from '#/utils/session.server'
+import { canAccessQueue } from '#/lib/permission'
+import { redriveMessage } from '#/lib/sqs'
 
 export const Route = createFileRoute(
   '/api/queues/$queueUrl/messages/redrive',

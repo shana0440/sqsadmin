@@ -1,6 +1,6 @@
 import { useState, Fragment, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Message } from '~/lib/sqs'
+import { Message } from '#/lib/sqs'
 import 'react-json-view-lite/dist/index.css'
 import AceEditor from './AceEditor'
 import RedriveMessageModal from './RedriveMessageModal'

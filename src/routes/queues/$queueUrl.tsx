@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { createFileRoute, Link } from '@tanstack/react-router'
-import QueueDetail from '~/components/QueueDetail'
-import { QueueInfo } from '~/lib/sqs'
+import QueueDetail from '#/components/QueueDetail'
+import { QueueInfo } from '#/lib/sqs'
 
 export const Route = createFileRoute('/queues/$queueUrl')({
   component: QueueDetailPage,

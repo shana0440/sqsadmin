@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { listQueues, getQueueAttributes } from '~/lib/sqs'
-import { getAuthUserEmail } from '~/utils/session.server'
-import { getAllowedQueueNamePatternsByEmail } from '~/lib/config'
+import { listQueues, getQueueAttributes } from '#/lib/sqs'
+import { getAuthUserEmail } from '#/utils/session.server'
+import { getAllowedQueueNamePatternsByEmail } from '#/lib/config'
 
 export const Route = createFileRoute('/api/queues')({
   server: {

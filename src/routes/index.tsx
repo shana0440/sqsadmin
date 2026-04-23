@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import QueueList from '~/components/QueueList'
+import QueueList from '#/components/QueueList'
 
 export const Route = createFileRoute('/')({
   component: Home,

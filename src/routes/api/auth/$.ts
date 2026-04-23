@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { StartAuthJS } from 'start-authjs'
-import { authConfig } from '~/utils/auth'
+import { authConfig } from '#/utils/auth'
 
 const { GET, POST } = StartAuthJS(authConfig)
 

@@ -5,9 +5,9 @@ import {
   receiveMessages,
   deleteMessage,
   receiveMessageById,
-} from '~/lib/sqs'
-import { getAuthUserEmail } from '~/utils/session.server'
-import { canAccessQueue } from '~/lib/permission'
+} from '#/lib/sqs'
+import { getAuthUserEmail } from '#/utils/session.server'
+import { canAccessQueue } from '#/lib/permission'
 
 export const Route = createFileRoute('/api/queues/$queueUrl/messages')({
   server: {

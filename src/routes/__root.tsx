@@ -1,17 +1,19 @@
 /// <reference types="vite/client" />
 import type { ReactNode } from 'react'
 import type { QueryClient } from '@tanstack/react-query'
-import type { AuthSession } from 'start-authjs'
 import {
   HeadContent,
   Outlet,
   Scripts,
   createRootRouteWithContext,
 } from '@tanstack/react-router'
-import { fetchSession } from '~/utils/session'
-import appCss from '~/styles/app.css?url'
-import Header from '~/components/Header'
-import Footer from '~/components/Footer'
+import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
+import { TanStackDevtools } from '@tanstack/react-devtools'
+import { ReactQueryDevtoolsPanel } from '@tanstack/react-query-devtools'
+import { fetchSession } from '#/utils/session'
+import appCss from '#/styles/app.css?url'
+import Header from '#/components/Header'
+import Footer from '#/components/Footer'
 
 interface RouterContext {
   queryClient: QueryClient
@@ -64,6 +66,19 @@ function RootDocument({ children }: { children: ReactNode }) {
           {children}
         </div>
         <Footer />
+        <TanStackDevtools
+          config={{ position: 'bottom-right' }}
+          plugins={[
+            {
+              name: 'Tanstack Router',
+              render: <TanStackRouterDevtoolsPanel />,
+            },
+            {
+              name: 'Tanstack Query',
+              render: <ReactQueryDevtoolsPanel />,
+            },
+          ]}
+        />
         <Scripts />
       </body>
     </html>

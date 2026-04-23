@@ -1,5 +1,5 @@
 import Cognito from '@auth/core/providers/cognito'
-import { isUserAllowedToLogin } from '~/lib/config'
+import { isUserAllowedToLogin } from '#/lib/config'
 import type { StartAuthJSConfig } from 'start-authjs'
 
 export const authConfig: StartAuthJSConfig = {

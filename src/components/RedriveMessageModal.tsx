@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Message } from '~/lib/sqs'
+import { Message } from '#/lib/sqs'
 import AceEditor from './AceEditor'
 import CloseButton from './CloseButton'
 

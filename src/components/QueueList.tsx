@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { QueueInfo } from '~/lib/sqs'
+import { QueueInfo } from '#/lib/sqs'
 
 type QueueListResponse = {
   items: QueueInfo[]
