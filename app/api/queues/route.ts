@@ -18,7 +18,7 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const nextToken = searchParams.get('nextToken') || undefined;
-    const limit = parseInt(searchParams.get('limit') || '100', 100);
+    const limit = parseInt(searchParams.get('limit') || '100', 10);
 
     const { items: queues, nextToken: newNextToken } = await listQueues(
       nextToken,
