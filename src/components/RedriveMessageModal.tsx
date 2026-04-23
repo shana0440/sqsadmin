@@ -1,8 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Message } from '~/lib/sqs'
-import AceEditor from 'react-ace'
-import 'ace-builds/src-noconflict/mode-json'
-import 'ace-builds/src-noconflict/theme-dracula'
+import AceEditor from './AceEditor'
 import CloseButton from './CloseButton'
 
 interface RedriveMessageModalProps {

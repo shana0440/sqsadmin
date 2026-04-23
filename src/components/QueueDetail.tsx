@@ -2,11 +2,7 @@ import { useState, Fragment, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Message } from '~/lib/sqs'
 import 'react-json-view-lite/dist/index.css'
-import AceEditor from 'react-ace'
-import 'ace-builds/src-noconflict/mode-json'
-import 'ace-builds/src-noconflict/theme-github'
-import 'ace-builds/src-noconflict/theme-dracula'
-import 'ace-builds/src-noconflict/theme-tomorrow_night'
+import AceEditor from './AceEditor'
 import RedriveMessageModal from './RedriveMessageModal'
 
 interface QueueDetailProps {
