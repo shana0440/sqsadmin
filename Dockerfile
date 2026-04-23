@@ -50,5 +50,6 @@ USER nextjs
 EXPOSE 8086
 
 ENV PORT 8086
+ENV HOSTNAME 0.0.0.0
 
-CMD ["npm", "run", "start"]
+CMD ["node", "server.js"]

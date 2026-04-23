@@ -45,3 +45,4 @@ next-env.d.ts
 dist/
 
 config.yaml
+helm/config.yaml

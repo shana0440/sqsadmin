@@ -1,0 +1,6 @@
+apiVersion: v2
+name: sqsadmin
+description: SQS Admin — web-based administration tool for Amazon SQS
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

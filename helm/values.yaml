@@ -1,0 +1,17 @@
+image:
+  repository: 122610499596.dkr.ecr.ap-east-1.amazonaws.com/sqsadmin
+  tag: latest
+  pullPolicy: IfNotPresent
+
+serviceAccount:
+  name: ""
+  annotations: {}
+
+service:
+  type: ClusterIP
+  port: 8086
+
+env: {}
+
+ingress:
+  enabled: false

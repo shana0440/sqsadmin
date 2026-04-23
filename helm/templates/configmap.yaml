@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "sqsadmin.fullname" . }}-config
+  labels:
+    {{- include "sqsadmin.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    {{- .Files.Get "config.yaml" | nindent 4 }}

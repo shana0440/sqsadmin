@@ -3,4 +3,6 @@
 .next
 .github
 config.yaml
+config.yaml.example
+helm
 node_modules
