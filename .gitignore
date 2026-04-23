@@ -13,12 +13,13 @@
 # testing
 /coverage
 
-# next.js
-/.next/
-/out/
+# tanstack start / vite
+/.output/
+/src/routeTree.gen.ts
 
 # production
 /build
+/dist
 
 # misc
 .DS_Store
@@ -38,7 +39,6 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts
 
 **/.claude/settings.local.json
 .idea
