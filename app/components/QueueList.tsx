@@ -4,8 +4,6 @@ import { useState } from 'react';
 import useSWR from 'swr';
 import { QueueInfo } from '../lib/sqs';
 import Link from 'next/link';
-import CreateQueueModal from './CreateQueueModal';
-import DeleteQueueModal from './DeleteQueueModal';
 
 type QueueListResponse = {
   items: QueueInfo[];
@@ -25,21 +23,13 @@ const fetcher = async (url: string): Promise<QueueListResponse> => {
 export default function QueueList() {
   const [pageToken, setPageToken] = useState<string | undefined>(undefined);
   const [page, setPage] = useState(1);
-  const PAGE_SIZE = 10;
-
-  // Modal states
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [selectedQueue, setSelectedQueue] = useState<QueueInfo | null>(null);
+  const PAGE_SIZE = 100;
 
   const query = pageToken
     ? `/api/queues?nextToken=${encodeURIComponent(pageToken)}&limit=${PAGE_SIZE}`
     : `/api/queues?limit=${PAGE_SIZE}`;
 
-  const { data, error, isLoading, mutate } = useSWR<QueueListResponse>(
-    query,
-    fetcher,
-  );
+  const { data, error, isLoading } = useSWR<QueueListResponse>(query, fetcher);
 
   const queues = data?.items ?? [];
   const nextToken = data?.nextToken;
@@ -76,43 +66,9 @@ export default function QueueList() {
     );
   }
 
-  const handleOpenDeleteModal = (queue: QueueInfo) => {
-    setSelectedQueue(queue);
-    setIsDeleteModalOpen(true);
-  };
-
-  const handleQueueCreated = () => {
-    mutate();
-  };
-
-  const handleQueueDeleted = () => {
-    mutate();
-  };
-
   if (queues.length === 0 && !loading) {
     return (
       <div className="p-4">
-        <div className="flex justify-end mb-4">
-          <button
-            onClick={() => setIsCreateModalOpen(true)}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-          >
-            <svg
-              className="h-4 w-4 mr-2"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-              />
-            </svg>
-            Create Queue
-          </button>
-        </div>
         <div className="text-center dark:text-gray-300 p-8 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg">
           <svg
             className="h-12 w-12 mx-auto text-gray-400 dark:text-gray-600"
@@ -129,15 +85,9 @@ export default function QueueList() {
           </svg>
           <p className="mt-2 text-lg font-medium">No queues found</p>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Create your first SQS queue to get started.
+            No accessible queues are available.
           </p>
         </div>
-
-        <CreateQueueModal
-          isOpen={isCreateModalOpen}
-          onClose={() => setIsCreateModalOpen(false)}
-          onSuccess={handleQueueCreated}
-        />
       </div>
     );
   }
@@ -148,25 +98,6 @@ export default function QueueList() {
         <h2 className="text-lg font-medium text-gray-900 dark:text-white">
           Your Queues
         </h2>
-        <button
-          onClick={() => setIsCreateModalOpen(true)}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-        >
-          <svg
-            className="h-4 w-4 mr-2"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-            />
-          </svg>
-          Create Queue
-        </button>
       </div>
 
       <div className="overflow-x-auto">
@@ -246,12 +177,6 @@ export default function QueueList() {
                     >
                       View
                     </Link>
-                    <button
-                      onClick={() => handleOpenDeleteModal(queue)}
-                      className="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                    >
-                      Delete
-                    </button>
                   </td>
                 </tr>
               );
@@ -295,26 +220,6 @@ export default function QueueList() {
           </div>
         )}
       </div>
-
-      {/* Modals */}
-      <CreateQueueModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onSuccess={handleQueueCreated}
-      />
-
-      {selectedQueue && (
-        <DeleteQueueModal
-          isOpen={isDeleteModalOpen}
-          queueName={selectedQueue.name}
-          queueUrl={selectedQueue.url}
-          onClose={() => {
-            setIsDeleteModalOpen(false);
-            setSelectedQueue(null);
-          }}
-          onSuccess={handleQueueDeleted}
-        />
-      )}
     </div>
   );
 }
