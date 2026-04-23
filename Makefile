@@ -5,11 +5,8 @@ REGISTRY ?= 122610499596.dkr.ecr.ap-east-1.amazonaws.com
 .env:
 	cp .env.example .env
 
-config.yaml:
-	cp config.yaml.example config.yaml
-
 .PHONY: setup
-setup: config.yaml .env
+setup: .env
 	@echo "Setup complete."
 
 .PHONY: dev
@@ -31,9 +28,7 @@ ecr-login:
 
 .PHONY: deploy
 deploy:
-	cp config.yaml helm/config.yaml
 	helm upgrade --install sqsadmin ./helm \
 		--namespace infra-sqsadmin --create-namespace \
 		-f ./helm/values-$(ENV).yaml \
 		--set image.tag=$(TAG)
-	rm -f helm/config.yaml

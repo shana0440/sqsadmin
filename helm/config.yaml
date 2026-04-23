@@ -1,0 +1,25 @@
+systems:
+  example:
+    - "production-example-*"
+    - "uat-example-*"
+  ssc:
+    - "uat-ssc-*"
+    - "production-ssc-*"
+  usm:
+    - "uat-usm-*"
+    - "production-usm-*"
+system_users:
+  admin:
+    - kenji@oursky.com
+    - rickmak@oursky.com
+    - jim@oursky.com
+  ssc:
+    - clarence.chan@linkage-retail.com
+    - richard.wu@linkage-retail.hk
+    - vincent.zhang@linkage-retail.hk
+    - kenji+linkage@oursky.com
+  usm:
+    - clarence.chan@linkage-retail.com
+    - richard.wu@linkage-retail.hk
+    - vincent.zhang@linkage-retail.hk
+    - kenji+linkage@oursky.com
