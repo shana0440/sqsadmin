@@ -1,6 +1,6 @@
 # SQS Admin
 
-A web-based administration tool for Amazon Simple Queue Service (SQS), built with Next.js.
+A web-based administration tool for Amazon Simple Queue Service (SQS), built with TanStack Start.
 
 ## Features
 
@@ -33,8 +33,8 @@ This project reads `config.yaml` from the project root at startup. It is require
 | `AWS_ACCESS_KEY_ID`     | AWS access key for SQS                         | `test`                  |
 | `AWS_SECRET_ACCESS_KEY` | AWS secret key for SQS                         | `test`                  |
 | `SQS_ENDPOINT`          | custom SQS endpoint                            | `http://localhost:3000` |
-| `NEXTAUTH_URL`          | Base URL for NextAuth callbacks and redirects  | `http://localhost:3001` |
-| `NEXTAUTH_SECRET`       | Secret used by NextAuth to sign/encrypt tokens | ``                      |
+| `AUTH_URL`              | Auth.js endpoint URL for callbacks and redirects | `http://localhost:3001/api/auth` |
+| `AUTH_SECRET`           | Secret used by Auth.js to sign/encrypt tokens    | ``                             |
 | `COGNITO_CLIENT_ID`     | Amazon Cognito app client ID                   | ``                      |
 | `COGNITO_CLIENT_SECRET` | Amazon Cognito app client secret               | ``                      |
 | `COGNITO_ISSUER`        | Cognito issuer URL (user pool OIDC issuer)     | ``                      |
