@@ -6,6 +6,7 @@ import {
   Outlet,
   Scripts,
   createRootRouteWithContext,
+  redirect,
 } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
@@ -19,9 +20,17 @@ interface RouterContext {
   queryClient: QueryClient
 }
 
+const isPublicRoute = (pathname: string) =>
+  pathname === '/login' || pathname.startsWith('/api/')
+
 export const Route = createRootRouteWithContext<RouterContext>()({
-  beforeLoad: async () => {
+  beforeLoad: async ({ location }) => {
     const session = await fetchSession()
+
+    if (!session && !isPublicRoute(location.pathname)) {
+      throw redirect({ to: '/login' })
+    }
+
     return { session }
   },
   head: () => ({
