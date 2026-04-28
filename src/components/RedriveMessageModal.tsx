@@ -1,16 +1,16 @@
-import { useMemo, useState } from 'react'
-import { Message } from '#/lib/sqs'
-import AceEditor from './AceEditor'
-import CloseButton from './CloseButton'
+import { useMemo, useState } from 'react';
+import { Message } from '#/lib/sqs';
+import AceEditor from './AceEditor';
+import CloseButton from './CloseButton';
 
 interface RedriveMessageModalProps {
-  isOpen: boolean
-  message: Message | null
-  deadLetterSourceQueues: string[]
-  isSubmitting: boolean
-  error: string | null
-  onClose: () => void
-  onConfirm: (targetQueueUrl: string) => void
+  isOpen: boolean;
+  message: Message | null;
+  deadLetterSourceQueues: string[];
+  isSubmitting: boolean;
+  error: string | null;
+  onClose: () => void;
+  onConfirm: (targetQueueUrl: string) => void;
 }
 
 export default function RedriveMessageModal({
@@ -24,26 +24,26 @@ export default function RedriveMessageModal({
 }: RedriveMessageModalProps) {
   const [selectedQueueUrl, setSelectedQueueUrl] = useState(
     deadLetterSourceQueues[0],
-  )
+  );
 
   const queueOptions = useMemo(() => {
     return deadLetterSourceQueues.map((url) => ({
       url,
       name: url.split('/').pop() || url,
-    }))
-  }, [deadLetterSourceQueues])
+    }));
+  }, [deadLetterSourceQueues]);
 
   const formattedPayload = useMemo(() => {
-    if (!message?.body) return ''
+    if (!message?.body) return '';
 
     try {
-      return JSON.stringify(JSON.parse(message.body), null, 2)
+      return JSON.stringify(JSON.parse(message.body), null, 2);
     } catch {
-      return message.body
+      return message.body;
     }
-  }, [message])
+  }, [message]);
 
-  if (!isOpen || !message) return null
+  if (!isOpen || !message) return null;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -154,5 +154,5 @@ export default function RedriveMessageModal({
         </div>
       </div>
     </div>
-  )
+  );
 }

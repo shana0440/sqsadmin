@@ -4,13 +4,13 @@ import {
   ComboboxInput,
   ComboboxOption,
   ComboboxOptions,
-} from '@headlessui/react'
-import { useEffect, useState } from 'react'
+} from '@headlessui/react';
+import { useEffect, useState } from 'react';
 
 interface Props {
-  value: string
-  options: string[]
-  onChange: (value: string) => void
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
 }
 
 export default function SystemFilterCombobox({
@@ -18,25 +18,25 @@ export default function SystemFilterCombobox({
   options,
   onChange,
 }: Props) {
-  const [query, setQuery] = useState(value)
+  const [query, setQuery] = useState(value);
 
   useEffect(() => {
-    setQuery(value)
-  }, [value])
+    setQuery(value);
+  }, [value]);
 
-  const selectedOption = options.find((option) => option === value) ?? null
-  const normalizedQuery = query.trim().toLowerCase()
+  const selectedOption = options.find((option) => option === value) ?? null;
+  const normalizedQuery = query.trim().toLowerCase();
   const filteredOptions =
     normalizedQuery === ''
       ? options
-      : options.filter((name) => name.toLowerCase().includes(normalizedQuery))
+      : options.filter((name) => name.toLowerCase().includes(normalizedQuery));
 
   return (
     <Combobox
       value={selectedOption}
       onChange={(selectedValue: string | null) => {
-        const nextValue = selectedValue ?? ''
-        onChange(nextValue)
+        const nextValue = selectedValue ?? '';
+        onChange(nextValue);
       }}
     >
       <div className="relative">
@@ -44,8 +44,8 @@ export default function SystemFilterCombobox({
           aria-label="Filter system"
           displayValue={(currentValue: string | null) => currentValue ?? ''}
           onChange={(event) => {
-            const nextQuery = event.target.value
-            setQuery(nextQuery)
+            const nextQuery = event.target.value;
+            setQuery(nextQuery);
           }}
           placeholder="Filter system"
           autoComplete="off"
@@ -78,5 +78,5 @@ export default function SystemFilterCombobox({
         </ComboboxOptions>
       </div>
     </Combobox>
-  )
+  );
 }

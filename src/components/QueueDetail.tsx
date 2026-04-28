@@ -1,15 +1,15 @@
-import { useState, Fragment, useMemo } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Message } from '#/lib/sqs'
-import 'react-json-view-lite/dist/index.css'
-import AceEditor from './AceEditor'
-import RedriveMessageModal from './RedriveMessageModal'
+import { useState, Fragment, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Message } from '#/lib/sqs';
+import 'react-json-view-lite/dist/index.css';
+import AceEditor from './AceEditor';
+import RedriveMessageModal from './RedriveMessageModal';
 
 interface QueueDetailProps {
-  queueUrl: string
-  queueName: string
-  queueAttributes?: Record<string, string>
-  deadLetterSourceQueues?: string[]
+  queueUrl: string;
+  queueName: string;
+  queueAttributes?: Record<string, string>;
+  deadLetterSourceQueues?: string[];
 }
 
 export default function QueueDetail({
@@ -18,26 +18,26 @@ export default function QueueDetail({
   queueAttributes,
   deadLetterSourceQueues = [],
 }: QueueDetailProps) {
-  const queryClient = useQueryClient()
-  const [actionError, setActionError] = useState<string | null>(null)
-  const [messageInput, setMessageInput] = useState('{}')
-  const [sendingMessage, setSendingMessage] = useState(false)
-  const [sendError, setSendError] = useState<string | null>(null)
-  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false)
-  const [isValidJson, setIsValidJson] = useState(true)
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
+  const queryClient = useQueryClient();
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [messageInput, setMessageInput] = useState('{}');
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
+  const [isValidJson, setIsValidJson] = useState(true);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
-  const messagesQueryKey = ['messages', queueUrl]
+  const messagesQueryKey = ['messages', queueUrl];
 
   const fetchMessages = async (): Promise<Message[]> => {
     const response = await fetch(
       `/api/queues/${queueUrl}/messages?mode=peek&max=50`,
-    )
+    );
     if (!response.ok) {
-      throw new Error(`Failed to fetch messages: ${response.statusText}`)
+      throw new Error(`Failed to fetch messages: ${response.statusText}`);
     }
-    return response.json()
-  }
+    return response.json();
+  };
 
   const {
     data: messages = [],
@@ -48,183 +48,181 @@ export default function QueueDetail({
     queryKey: messagesQueryKey,
     queryFn: fetchMessages,
     refetchInterval: autoRefreshEnabled ? 5000 : false,
-  })
+  });
 
-  const loading = isLoading || isFetching
+  const loading = isLoading || isFetching;
   const error = useMemo(() => {
-    if (actionError) return actionError
+    if (actionError) return actionError;
     if (fetchError)
       return fetchError instanceof Error
         ? fetchError.message
-        : 'Failed to fetch messages'
-    return null
-  }, [actionError, fetchError])
+        : 'Failed to fetch messages';
+    return null;
+  }, [actionError, fetchError]);
 
-  const mutate = (
-    updater?: (previous: Message[] | undefined) => Message[],
-  ) => {
+  const mutate = (updater?: (previous: Message[] | undefined) => Message[]) => {
     if (updater) {
-      queryClient.setQueryData(messagesQueryKey, updater)
+      queryClient.setQueryData(messagesQueryKey, updater);
     } else {
-      queryClient.invalidateQueries({ queryKey: messagesQueryKey })
+      queryClient.invalidateQueries({ queryKey: messagesQueryKey });
     }
-  }
+  };
 
   const toggleAutoRefresh = () => {
-    setAutoRefreshEnabled((previous) => !previous)
-  }
+    setAutoRefreshEnabled((previous) => !previous);
+  };
 
   const handleSendMessage = async () => {
     try {
-      setSendingMessage(true)
-      setSendError(null)
+      setSendingMessage(true);
+      setSendError(null);
 
-      let messageBody
+      let messageBody;
       try {
-        messageBody = JSON.parse(messageInput)
+        messageBody = JSON.parse(messageInput);
       } catch (e) {
         setSendError(
           'Invalid JSON format: ' +
             (e instanceof Error ? e.message : 'Unknown error'),
-        )
-        setSendingMessage(false)
-        return
+        );
+        setSendingMessage(false);
+        return;
       }
 
       const response = await fetch(`/api/queues/${queueUrl}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: messageBody }),
-      })
+      });
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to send message')
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to send message');
       }
 
-      setMessageInput('{}')
-      mutate()
+      setMessageInput('{}');
+      mutate();
     } catch (err) {
       setSendError(
         err instanceof Error ? err.message : 'Failed to send message',
-      )
-      console.error('Error sending message:', err)
+      );
+      console.error('Error sending message:', err);
     } finally {
-      setSendingMessage(false)
+      setSendingMessage(false);
     }
-  }
+  };
 
   const validateJson = (input: string) => {
     try {
-      JSON.parse(input)
-      setIsValidJson(true)
-      setSendError(null)
-      return true
+      JSON.parse(input);
+      setIsValidJson(true);
+      setSendError(null);
+      return true;
     } catch (e) {
-      setIsValidJson(false)
+      setIsValidJson(false);
       setSendError(
         'Invalid JSON format: ' +
           (e instanceof Error ? e.message : 'Unknown error'),
-      )
-      return false
+      );
+      return false;
     }
-  }
+  };
 
   const [deletingMessageIds, setDeletingMessageIds] = useState<Set<string>>(
     new Set(),
-  )
+  );
   const [redrivingMessageIds, setRedrivingMessageIds] = useState<Set<string>>(
     new Set(),
-  )
+  );
   const [selectedMessageForRedrive, setSelectedMessageForRedrive] =
-    useState<Message | null>(null)
-  const [redriveError, setRedriveError] = useState<string | null>(null)
+    useState<Message | null>(null);
+  const [redriveError, setRedriveError] = useState<string | null>(null);
 
   const handleOpenRedriveModal = (message: Message) => {
-    setSelectedMessageForRedrive(message)
-    setRedriveError(null)
-  }
+    setSelectedMessageForRedrive(message);
+    setRedriveError(null);
+  };
 
   const handleCloseRedriveMessageModal = () => {
-    setSelectedMessageForRedrive(null)
-    setRedriveError(null)
-  }
+    setSelectedMessageForRedrive(null);
+    setRedriveError(null);
+  };
 
   const handleRedriveMessage = async (targetQueueUrl: string) => {
-    if (!selectedMessageForRedrive) return
+    if (!selectedMessageForRedrive) return;
 
-    const messageId = selectedMessageForRedrive.id
+    const messageId = selectedMessageForRedrive.id;
 
     try {
-      setRedrivingMessageIds((prev) => new Set([...prev, messageId]))
-      setRedriveError(null)
+      setRedrivingMessageIds((prev) => new Set([...prev, messageId]));
+      setRedriveError(null);
 
       const response = await fetch(`/api/queues/${queueUrl}/messages/redrive`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messageId, targetQueueUrl }),
-      })
+      });
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error)
+        const errorData = await response.json();
+        throw new Error(errorData.error);
       }
 
       mutate((previous) =>
         previous ? previous.filter((msg) => msg.id !== messageId) : [],
-      )
-      setSelectedMessageForRedrive(null)
+      );
+      setSelectedMessageForRedrive(null);
     } catch (err) {
       setRedriveError(
         err instanceof Error ? err.message : 'Failed to redrive message',
-      )
-      console.error('Error redriving message:', err)
+      );
+      console.error('Error redriving message:', err);
     } finally {
       setRedrivingMessageIds((prev) => {
-        const updated = new Set(prev)
-        updated.delete(messageId)
-        return updated
-      })
+        const updated = new Set(prev);
+        updated.delete(messageId);
+        return updated;
+      });
     }
-  }
+  };
 
   const handleDeleteMessage = async (message: Message) => {
     try {
-      const messageId = message.id
-      setDeletingMessageIds((prev) => new Set([...prev, messageId]))
+      const messageId = message.id;
+      setDeletingMessageIds((prev) => new Set([...prev, messageId]));
 
       const response = await fetch(`/api/queues/${queueUrl}/messages`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messageId, peekMode: true }),
-      })
+      });
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to delete message')
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete message');
       }
 
       mutate((previous) =>
         previous ? previous.filter((msg) => msg.id !== messageId) : [],
-      )
+      );
     } catch (err) {
       setActionError(
         err instanceof Error ? err.message : 'Failed to delete message',
-      )
-      console.error('Error deleting message:', err)
+      );
+      console.error('Error deleting message:', err);
     } finally {
       setDeletingMessageIds((prev) => {
-        const updated = new Set(prev)
-        updated.delete(message.id)
-        return updated
-      })
+        const updated = new Set(prev);
+        updated.delete(message.id);
+        return updated;
+      });
     }
-  }
+  };
 
   const formatMessageBody = (body: string) => {
     try {
-      const parsedBody = JSON.parse(body)
-      const formattedJson = JSON.stringify(parsedBody, null, 2)
+      const parsedBody = JSON.parse(body);
+      const formattedJson = JSON.stringify(parsedBody, null, 2);
 
       return (
         <div className="rounded overflow-hidden">
@@ -252,36 +250,36 @@ export default function QueueDetail({
             style={{ borderRadius: '4px' }}
           />
         </div>
-      )
+      );
     } catch {
       return (
         <pre className="whitespace-pre-wrap font-mono bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 p-3 rounded">
           {body}
         </pre>
-      )
+      );
     }
-  }
+  };
 
   const getMessageStatus = (message: Message) => {
-    const attributes = message.attributes || {}
-    let status = 'Available'
+    const attributes = message.attributes || {};
+    let status = 'Available';
     let statusClass =
-      'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100'
+      'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100';
 
     if (
       attributes.ApproximateFirstReceiveTimestamp &&
       attributes.SentTimestamp
     ) {
-      const sentTime = parseInt(attributes.SentTimestamp, 10)
+      const sentTime = parseInt(attributes.SentTimestamp, 10);
       const receiveTime = parseInt(
         attributes.ApproximateFirstReceiveTimestamp,
         10,
-      )
+      );
 
       if (receiveTime - sentTime > 1000) {
-        status = 'Delayed'
+        status = 'Delayed';
         statusClass =
-          'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100'
+          'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100';
       }
     }
 
@@ -289,14 +287,14 @@ export default function QueueDetail({
       attributes.ApproximateReceiveCount &&
       parseInt(attributes.ApproximateReceiveCount, 10) > 0
     ) {
-      status = 'In Flight'
+      status = 'In Flight';
       statusClass =
-        'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100'
+        'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100';
     }
 
     if (deletingMessageIds.has(message.id)) {
-      status = 'Deleting'
-      statusClass = 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100'
+      status = 'Deleting';
+      statusClass = 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100';
     }
 
     return (
@@ -305,24 +303,24 @@ export default function QueueDetail({
       >
         {status}
       </span>
-    )
-  }
+    );
+  };
 
   const getQueueStats = () => {
-    const messageCount = messages.length
+    const messageCount = messages.length;
     const avgMessageSize =
       messageCount > 0
         ? messages.reduce((sum, msg) => sum + msg.body.length, 0) / messageCount
-        : 0
+        : 0;
 
-    let oldestMessageTime = 'N/A'
+    let oldestMessageTime = 'N/A';
     if (messageCount > 0) {
       const timestamps = messages
         .map((msg) => msg.timestamp || 0)
-        .filter((t) => t > 0)
+        .filter((t) => t > 0);
       if (timestamps.length > 0) {
-        const oldestTimestamp = Math.min(...timestamps)
-        oldestMessageTime = new Date(oldestTimestamp).toLocaleString()
+        const oldestTimestamp = Math.min(...timestamps);
+        oldestMessageTime = new Date(oldestTimestamp).toLocaleString();
       }
     }
 
@@ -331,27 +329,27 @@ export default function QueueDetail({
       avgMessageSize: Math.round(avgMessageSize),
       oldestMessage: oldestMessageTime,
       activeRefresh: autoRefreshEnabled,
-    }
-  }
+    };
+  };
 
-  const stats = getQueueStats()
+  const stats = getQueueStats();
 
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(
     null,
-  )
-  const [isProduceModalOpen, setIsProduceModalOpen] = useState(false)
+  );
+  const [isProduceModalOpen, setIsProduceModalOpen] = useState(false);
 
   const toggleMessageDetails = (messageId: string) => {
     if (selectedMessageId === messageId) {
-      setSelectedMessageId(null)
+      setSelectedMessageId(null);
     } else {
-      setSelectedMessageId(messageId)
+      setSelectedMessageId(messageId);
     }
-  }
+  };
 
   const toggleProduceModal = () => {
-    setIsProduceModalOpen(!isProduceModalOpen)
-  }
+    setIsProduceModalOpen(!isProduceModalOpen);
+  };
 
   return (
     <div className="space-y-6">
@@ -547,23 +545,23 @@ export default function QueueDetail({
                 <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                   {[...messages]
                     .sort((a, b) => {
-                      const aTimestamp = a.timestamp || 0
-                      const bTimestamp = b.timestamp || 0
+                      const aTimestamp = a.timestamp || 0;
+                      const bTimestamp = b.timestamp || 0;
                       return sortDirection === 'asc'
                         ? aTimestamp - bTimestamp
-                        : bTimestamp - aTimestamp
+                        : bTimestamp - aTimestamp;
                     })
                     .map((message, index) => {
-                      let preview = '{}'
+                      let preview = '{}';
                       try {
-                        const parsed = JSON.parse(message.body)
+                        const parsed = JSON.parse(message.body);
                         preview =
                           JSON.stringify(parsed).substring(0, 60) +
-                          (JSON.stringify(parsed).length > 60 ? '...' : '')
+                          (JSON.stringify(parsed).length > 60 ? '...' : '');
                       } catch {
                         preview =
                           message.body.substring(0, 60) +
-                          (message.body.length > 60 ? '...' : '')
+                          (message.body.length > 60 ? '...' : '');
                       }
 
                       return (
@@ -592,8 +590,8 @@ export default function QueueDetail({
                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                               <button
                                 onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleOpenRedriveModal(message)
+                                  e.stopPropagation();
+                                  handleOpenRedriveModal(message);
                                 }}
                                 disabled={
                                   deadLetterSourceQueues.length === 0 ||
@@ -607,8 +605,8 @@ export default function QueueDetail({
                               </button>
                               <button
                                 onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleDeleteMessage(message)
+                                  e.stopPropagation();
+                                  handleDeleteMessage(message);
                                 }}
                                 disabled={deletingMessageIds.has(message.id)}
                                 className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 disabled:opacity-50"
@@ -631,7 +629,7 @@ export default function QueueDetail({
                             </tr>
                           )}
                         </Fragment>
-                      )
+                      );
                     })}
                 </tbody>
               </table>
@@ -689,8 +687,8 @@ export default function QueueDetail({
                           theme="dracula"
                           value={messageInput}
                           onChange={(value) => {
-                            setMessageInput(value)
-                            validateJson(value)
+                            setMessageInput(value);
+                            validateJson(value);
                           }}
                           name="message-editor"
                           editorProps={{ $blockScrolling: true }}
@@ -716,9 +714,9 @@ export default function QueueDetail({
                       <button
                         type="button"
                         onClick={() => {
-                          handleSendMessage()
+                          handleSendMessage();
                           if (!sendError) {
-                            toggleProduceModal()
+                            toggleProduceModal();
                           }
                         }}
                         disabled={
@@ -751,5 +749,5 @@ export default function QueueDetail({
         onConfirm={handleRedriveMessage}
       />
     </div>
-  )
+  );
 }

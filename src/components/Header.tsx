@@ -1,13 +1,18 @@
-import { useState } from 'react'
-import { Link, useMatch } from '@tanstack/react-router'
+import { useState } from 'react';
+import { Link, useMatch } from '@tanstack/react-router';
 
 export default function Header() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const rootMatch = useMatch({ from: '__root__' })
-  const session = (rootMatch.context as { session?: { user?: { name?: string; email?: string } } | null })?.session ?? null
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const rootMatch = useMatch({ from: '__root__' });
+  const session =
+    (
+      rootMatch.context as {
+        session?: { user?: { name?: string; email?: string } } | null;
+      }
+    )?.session ?? null;
 
   const userDisplayName =
-    session?.user?.name || session?.user?.email || 'Signed In User'
+    session?.user?.name || session?.user?.email || 'Signed In User';
 
   return (
     <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow dark:shadow-gray-800">
@@ -103,5 +108,5 @@ export default function Header() {
         )}
       </nav>
     </header>
-  )
+  );
 }

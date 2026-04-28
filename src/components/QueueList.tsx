@@ -1,87 +1,87 @@
-import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { Link } from '@tanstack/react-router'
-import { QueueInfo } from '#/lib/sqs'
-import SystemFilterCombobox from './SystemFilterCombobox'
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Link } from '@tanstack/react-router';
+import { QueueInfo } from '#/lib/sqs';
+import SystemFilterCombobox from './SystemFilterCombobox';
 
 type QueueListResponse = {
-  items: QueueInfo[]
-  nextToken?: string
-  systems?: string[]
-}
+  items: QueueInfo[];
+  nextToken?: string;
+  systems?: string[];
+};
 
 const fetchQueues = async (
   pageToken: string | undefined,
   pageSize: number,
   systemFilterText: string,
 ): Promise<QueueListResponse> => {
-  const params = new URLSearchParams()
-  params.set('limit', String(pageSize))
+  const params = new URLSearchParams();
+  params.set('limit', String(pageSize));
   if (pageToken) {
-    params.set('nextToken', pageToken)
+    params.set('nextToken', pageToken);
   }
   if (systemFilterText.trim()) {
-    params.set('system', systemFilterText.trim())
+    params.set('system', systemFilterText.trim());
   }
 
-  const query = `/api/queues?${params.toString()}`
+  const query = `/api/queues?${params.toString()}`;
 
-  const response = await fetch(query)
+  const response = await fetch(query);
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch queues: ${response.statusText}`)
+    throw new Error(`Failed to fetch queues: ${response.statusText}`);
   }
 
-  return response.json()
-}
+  return response.json();
+};
 
 export default function QueueList() {
-  const [pageToken, setPageToken] = useState<string | undefined>(undefined)
-  const [page, setPage] = useState(1)
-  const [showDlqOnly, setShowDlqOnly] = useState(true)
-  const [systemFilterText, setSystemFilterText] = useState('')
-  const PAGE_SIZE = 100
+  const [pageToken, setPageToken] = useState<string | undefined>(undefined);
+  const [page, setPage] = useState(1);
+  const [showDlqOnly, setShowDlqOnly] = useState(true);
+  const [systemFilterText, setSystemFilterText] = useState('');
+  const PAGE_SIZE = 100;
 
   const { data, error, isLoading, isFetching } = useQuery({
     queryKey: ['queues', pageToken, PAGE_SIZE, systemFilterText],
     queryFn: () => fetchQueues(pageToken, PAGE_SIZE, systemFilterText),
-  })
+  });
 
-  const allQueues = data?.items ?? []
-  const systemNames = data?.systems ?? []
+  const allQueues = data?.items ?? [];
+  const systemNames = data?.systems ?? [];
   const queues = showDlqOnly
     ? allQueues.filter((q) => q.deadLetterSourceQueues.length > 0)
-    : allQueues
-  const nextToken = data?.nextToken
-  const hasMore = !!nextToken
-  const loading = isLoading || isFetching
+    : allQueues;
+  const nextToken = data?.nextToken;
+  const hasMore = !!nextToken;
+  const loading = isLoading || isFetching;
 
   const handleNextPage = () => {
     if (nextToken) {
-      setPageToken(nextToken)
-      setPage((currentPage) => currentPage + 1)
+      setPageToken(nextToken);
+      setPage((currentPage) => currentPage + 1);
     }
-  }
+  };
 
   const handlePreviousPage = () => {
     if (page > 1) {
-      setPageToken(undefined)
-      setPage(1)
+      setPageToken(undefined);
+      setPage(1);
     }
-  }
+  };
 
   if (loading && queues.length === 0) {
     return (
       <div className="p-4 text-center dark:text-gray-300">
         Loading queues...
       </div>
-    )
+    );
   }
 
   if (error) {
     return (
       <div className="p-4 text-center text-red-500">Error: {error.message}</div>
-    )
+    );
   }
 
   return (
@@ -173,8 +173,8 @@ export default function QueueList() {
               </tr>
             )}
             {queues.map((queue) => {
-              const encodedUrl = btoa(queue.url)
-              const isFifo = queue.attributes?.FifoQueue === 'true'
+              const encodedUrl = btoa(queue.url);
+              const isFifo = queue.attributes?.FifoQueue === 'true';
 
               return (
                 <tr key={queue.url}>
@@ -214,7 +214,7 @@ export default function QueueList() {
                     </Link>
                   </td>
                 </tr>
-              )
+              );
             })}
           </tbody>
         </table>
@@ -256,5 +256,5 @@ export default function QueueList() {
         )}
       </div>
     </div>
-  )
+  );
 }

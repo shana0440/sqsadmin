@@ -1,9 +1,9 @@
-import { createFileRoute } from '@tanstack/react-router'
-import QueueList from '#/components/QueueList'
+import { createFileRoute } from '@tanstack/react-router';
+import QueueList from '#/components/QueueList';
 
 export const Route = createFileRoute('/')({
   component: Home,
-})
+});
 
 function Home() {
   return (
@@ -23,5 +23,5 @@ function Home() {
         </section>
       </main>
     </div>
-  )
+  );
 }

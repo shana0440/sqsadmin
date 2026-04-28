@@ -1,23 +1,23 @@
-import { useState, useEffect } from 'react'
-import { createFileRoute, redirect } from '@tanstack/react-router'
+import { useState, useEffect } from 'react';
+import { createFileRoute, redirect } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/login')({
   beforeLoad: ({ context }) => {
     if (context.session) {
-      throw redirect({ to: '/' })
+      throw redirect({ to: '/' });
     }
   },
   component: Login,
-})
+});
 
 function Login() {
-  const [csrfToken, setCsrfToken] = useState<string>('')
+  const [csrfToken, setCsrfToken] = useState<string>('');
 
   useEffect(() => {
     fetch('/api/auth/csrf')
       .then((res) => res.json())
-      .then((data) => setCsrfToken(data.csrfToken))
-  }, [])
+      .then((data) => setCsrfToken(data.csrfToken));
+  }, []);
 
   return (
     <div className="max-w-md mx-auto mt-10">
@@ -54,5 +54,5 @@ function Login() {
         </p>
       </div>
     </div>
-  )
+  );
 }

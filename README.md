@@ -27,14 +27,14 @@ This project reads `config.yaml` from the project root at startup. It is require
 
 ### Environment Variables
 
-| Variable                | Description                                    | Default                 |
-| ----------------------- | ---------------------------------------------- | ----------------------- |
-| `AWS_REGION`            | AWS region used by the SQS client              | `ap-east-1`             |
-| `AWS_ACCESS_KEY_ID`     | AWS access key for SQS                         | `test`                  |
-| `AWS_SECRET_ACCESS_KEY` | AWS secret key for SQS                         | `test`                  |
-| `SQS_ENDPOINT`          | custom SQS endpoint                            | `http://localhost:3000` |
+| Variable                | Description                                      | Default                          |
+| ----------------------- | ------------------------------------------------ | -------------------------------- |
+| `AWS_REGION`            | AWS region used by the SQS client                | `ap-east-1`                      |
+| `AWS_ACCESS_KEY_ID`     | AWS access key for SQS                           | `test`                           |
+| `AWS_SECRET_ACCESS_KEY` | AWS secret key for SQS                           | `test`                           |
+| `SQS_ENDPOINT`          | custom SQS endpoint                              | `http://localhost:3000`          |
 | `AUTH_URL`              | Auth.js endpoint URL for callbacks and redirects | `http://localhost:3001/api/auth` |
-| `AUTH_SECRET`           | Secret used by Auth.js to sign/encrypt tokens    | ``                             |
-| `COGNITO_CLIENT_ID`     | Amazon Cognito app client ID                   | ``                      |
-| `COGNITO_CLIENT_SECRET` | Amazon Cognito app client secret               | ``                      |
-| `COGNITO_ISSUER`        | Cognito issuer URL (user pool OIDC issuer)     | ``                      |
+| `AUTH_SECRET`           | Secret used by Auth.js to sign/encrypt tokens    | ``                               |
+| `COGNITO_CLIENT_ID`     | Amazon Cognito app client ID                     | ``                               |
+| `COGNITO_CLIENT_SECRET` | Amazon Cognito app client secret                 | ``                               |
+| `COGNITO_ISSUER`        | Cognito issuer URL (user pool OIDC issuer)       | ``                               |

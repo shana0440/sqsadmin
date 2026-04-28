@@ -1,6 +1,6 @@
-import Cognito from '@auth/core/providers/cognito'
-import { isUserAllowedToLogin } from '#/lib/config'
-import type { StartAuthJSConfig } from 'start-authjs'
+import Cognito from '@auth/core/providers/cognito';
+import { isUserAllowedToLogin } from '#/lib/config';
+import type { StartAuthJSConfig } from 'start-authjs';
 
 export const authConfig: StartAuthJSConfig = {
   secret: process.env.AUTH_SECRET,
@@ -13,7 +13,7 @@ export const authConfig: StartAuthJSConfig = {
   ],
   callbacks: {
     async signIn({ user }) {
-      return !!user.email && isUserAllowedToLogin(user.email)
+      return !!user.email && isUserAllowedToLogin(user.email);
     },
   },
-}
+};

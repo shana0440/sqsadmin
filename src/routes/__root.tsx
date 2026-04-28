@@ -1,37 +1,37 @@
 /// <reference types="vite/client" />
-import type { ReactNode } from 'react'
-import type { QueryClient } from '@tanstack/react-query'
+import type { ReactNode } from 'react';
+import type { QueryClient } from '@tanstack/react-query';
 import {
   HeadContent,
   Outlet,
   Scripts,
   createRootRouteWithContext,
   redirect,
-} from '@tanstack/react-router'
-import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
-import { TanStackDevtools } from '@tanstack/react-devtools'
-import { ReactQueryDevtoolsPanel } from '@tanstack/react-query-devtools'
-import { fetchSession } from '#/utils/session'
-import appCss from '#/styles/app.css?url'
-import Header from '#/components/Header'
-import Footer from '#/components/Footer'
+} from '@tanstack/react-router';
+import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools';
+import { TanStackDevtools } from '@tanstack/react-devtools';
+import { ReactQueryDevtoolsPanel } from '@tanstack/react-query-devtools';
+import { fetchSession } from '#/utils/session';
+import appCss from '#/styles/app.css?url';
+import Header from '#/components/Header';
+import Footer from '#/components/Footer';
 
 interface RouterContext {
-  queryClient: QueryClient
+  queryClient: QueryClient;
 }
 
 const isPublicRoute = (pathname: string) =>
-  pathname === '/login' || pathname.startsWith('/api/')
+  pathname === '/login' || pathname.startsWith('/api/');
 
 export const Route = createRootRouteWithContext<RouterContext>()({
   beforeLoad: async ({ location }) => {
-    const session = await fetchSession()
+    const session = await fetchSession();
 
     if (!session && !isPublicRoute(location.pathname)) {
-      throw redirect({ to: '/login' })
+      throw redirect({ to: '/login' });
     }
 
-    return { session }
+    return { session };
   },
   head: () => ({
     meta: [
@@ -53,14 +53,14 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     ],
   }),
   component: RootComponent,
-})
+});
 
 function RootComponent() {
   return (
     <RootDocument>
       <Outlet />
     </RootDocument>
-  )
+  );
 }
 
 function RootDocument({ children }: { children: ReactNode }) {
@@ -91,5 +91,5 @@ function RootDocument({ children }: { children: ReactNode }) {
         <Scripts />
       </body>
     </html>
-  )
+  );
 }
