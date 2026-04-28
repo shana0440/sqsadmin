@@ -9,8 +9,10 @@ import ChevronDownIcon from './icons/ChevronDownIcon';
 type QueueListResponse = {
   items: QueueInfo[];
   nextToken?: string;
-  systems?: string[];
-  environments?: string[];
+};
+
+type FilterOptionsResponse = {
+  items: string[];
 };
 
 const fetchQueues = async (
@@ -42,6 +44,26 @@ const fetchQueues = async (
   return response.json();
 };
 
+const fetchSystems = async (): Promise<FilterOptionsResponse> => {
+  const response = await fetch('/api/systems');
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch systems: ${response.statusText}`);
+  }
+
+  return response.json();
+};
+
+const fetchEnvironments = async (): Promise<FilterOptionsResponse> => {
+  const response = await fetch('/api/environments');
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch environments: ${response.statusText}`);
+  }
+
+  return response.json();
+};
+
 export default function QueueList() {
   const [pageToken, setPageToken] = useState<string | undefined>(undefined);
   const [page, setPage] = useState(1);
@@ -62,9 +84,19 @@ export default function QueueList() {
       fetchQueues(pageToken, PAGE_SIZE, systemFilterText, environmentFilter),
   });
 
+  const { data: systemsData } = useQuery({
+    queryKey: ['systems'],
+    queryFn: fetchSystems,
+  });
+
+  const { data: environmentsData } = useQuery({
+    queryKey: ['environments'],
+    queryFn: fetchEnvironments,
+  });
+
   const allQueues = data?.items ?? [];
-  const systemNames = data?.systems ?? [];
-  const environmentNames = data?.environments ?? [];
+  const systemNames = systemsData?.items ?? [];
+  const environmentNames = environmentsData?.items ?? [];
   const queues = showDlqOnly
     ? allQueues.filter((q) => q.deadLetterSourceQueues.length > 0)
     : allQueues;

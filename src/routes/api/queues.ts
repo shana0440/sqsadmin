@@ -4,7 +4,6 @@ import { getAuthUserEmail } from '#/utils/session.server';
 import {
   getAllowedQueueNamePatternsByEmail,
   getAllowedSystemsByEmail,
-  getEnvironmentNames,
   getQueueNamePatternsByEnvironment,
   getQueueNamePatternsBySystem,
 } from '#/lib/config';
@@ -22,7 +21,6 @@ export const Route = createFileRoute('/api/queues')({
           }
 
           const allowedSystems = getAllowedSystemsByEmail(email);
-          const environments = getEnvironmentNames();
           const { searchParams } = new URL(request.url);
           const system = searchParams.get('system') || '';
           const environment = searchParams.get('environment') || '';
@@ -51,10 +49,9 @@ export const Route = createFileRoute('/api/queues')({
             }),
           );
 
-          const environmentPatterns =
-            environment && environments.includes(environment)
-              ? getQueueNamePatternsByEnvironment(environment)
-              : [];
+          const environmentPatterns = environment
+            ? getQueueNamePatternsByEnvironment(environment)
+            : [];
 
           const filteredQueues =
             environmentPatterns.length > 0
@@ -68,8 +65,6 @@ export const Route = createFileRoute('/api/queues')({
           return Response.json({
             items: filteredQueues,
             nextToken: newNextToken,
-            systems: allowedSystems,
-            environments,
           });
         } catch (error) {
           console.error('Error in /api/queues:', error);
