@@ -4,12 +4,22 @@ import { Message } from '#/lib/sqs';
 import 'react-json-view-lite/dist/index.css';
 import AceEditor from './AceEditor';
 import RedriveMessageModal from './RedriveMessageModal';
+import RedriveAllMessagesModal from './RedriveAllMessagesModal';
 
 interface QueueDetailProps {
   queueUrl: string;
   queueName: string;
   queueAttributes?: Record<string, string>;
   deadLetterSourceQueues?: string[];
+}
+
+interface MessageMoveTaskStatusResponse {
+  hasRunningTask: boolean;
+  runningTask?: {
+    Status?: string;
+    ApproximateNumberOfMessagesMoved?: number;
+    ApproximateNumberOfMessagesToMove?: number;
+  };
 }
 
 export default function QueueDetail({
@@ -137,6 +147,30 @@ export default function QueueDetail({
   const [selectedMessageForRedrive, setSelectedMessageForRedrive] =
     useState<Message | null>(null);
   const [redriveError, setRedriveError] = useState<string | null>(null);
+  const [isRedriveAllModalOpen, setIsRedriveAllModalOpen] = useState(false);
+  const [redrivingAllMessages, setRedrivingAllMessages] = useState(false);
+  const [redriveAllError, setRedriveAllError] = useState<string | null>(null);
+
+  const isDeadLetterQueue = deadLetterSourceQueues.length > 0;
+  const redriveTaskStatusQueryKey = ['redrive-task-status', queueUrl];
+
+  const fetchRedriveTaskStatus =
+    async (): Promise<MessageMoveTaskStatusResponse> => {
+      const response = await fetch(`/api/queues/${queueUrl}/redrive-all`);
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch redrive task status: ${response.statusText}`);
+      }
+
+      return response.json();
+    };
+
+  const { data: redriveTaskStatus } = useQuery({
+    queryKey: redriveTaskStatusQueryKey,
+    queryFn: fetchRedriveTaskStatus,
+    enabled: isDeadLetterQueue,
+    refetchInterval: (query) => (query.state.data?.hasRunningTask ? 5000 : false),
+  });
 
   const handleOpenRedriveModal = (message: Message) => {
     setSelectedMessageForRedrive(message);
@@ -146,6 +180,16 @@ export default function QueueDetail({
   const handleCloseRedriveMessageModal = () => {
     setSelectedMessageForRedrive(null);
     setRedriveError(null);
+  };
+
+  const handleOpenRedriveAllModal = () => {
+    setRedriveAllError(null);
+    setIsRedriveAllModalOpen(true);
+  };
+
+  const handleCloseRedriveAllModal = () => {
+    setIsRedriveAllModalOpen(false);
+    setRedriveAllError(null);
   };
 
   const handleRedriveMessage = async (
@@ -219,6 +263,42 @@ export default function QueueDetail({
         updated.delete(message.id);
         return updated;
       });
+    }
+  };
+
+  const handleRedriveAllMessages = async (
+    targetQueueUrl: string,
+    maxNumberOfMessagesPerSecond?: number,
+  ) => {
+    try {
+      setRedrivingAllMessages(true);
+      setRedriveAllError(null);
+
+      const response = await fetch(`/api/queues/${queueUrl}/redrive-all`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetQueueUrl,
+          maxNumberOfMessagesPerSecond,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to start redrive task');
+      }
+
+      setIsRedriveAllModalOpen(false);
+      queryClient.invalidateQueries({ queryKey: redriveTaskStatusQueryKey });
+      mutate();
+    } catch (err) {
+      setRedriveAllError(
+        err instanceof Error ? err.message : 'Failed to start redrive task',
+      );
+      console.error('Error starting redrive-all task:', err);
+    } finally {
+      setRedrivingAllMessages(false);
     }
   };
 
@@ -368,6 +448,15 @@ export default function QueueDetail({
             >
               Produce Message
             </button>
+            <button
+              id="redrive-all-messages-button"
+              type="button"
+              onClick={handleOpenRedriveAllModal}
+              className="hidden"
+              disabled={!isDeadLetterQueue}
+            >
+              Redrive All Messages
+            </button>
           </div>
           <div className="mt-5">
             <dl className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-4">
@@ -439,6 +528,18 @@ export default function QueueDetail({
                 {loading ? 'Refreshing...' : 'Refresh'}
               </button>
             </div>
+            {redriveTaskStatus?.hasRunningTask && (
+              <div className="mt-3 text-sm text-green-700 dark:text-green-400">
+                Redrive task is currently running
+                {typeof redriveTaskStatus.runningTask?.ApproximateNumberOfMessagesMoved ===
+                  'number' &&
+                typeof redriveTaskStatus.runningTask
+                  ?.ApproximateNumberOfMessagesToMove === 'number'
+                  ? ` (${redriveTaskStatus.runningTask.ApproximateNumberOfMessagesMoved}/${redriveTaskStatus.runningTask.ApproximateNumberOfMessagesToMove} moved)`
+                  : ''}
+                .
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -750,6 +851,15 @@ export default function QueueDetail({
         error={redriveError}
         onClose={handleCloseRedriveMessageModal}
         onConfirm={handleRedriveMessage}
+      />
+
+      <RedriveAllMessagesModal
+        isOpen={isRedriveAllModalOpen}
+        deadLetterSourceQueues={deadLetterSourceQueues}
+        isSubmitting={redrivingAllMessages}
+        error={redriveAllError}
+        onClose={handleCloseRedriveAllModal}
+        onConfirm={handleRedriveAllMessages}
       />
     </div>
   );

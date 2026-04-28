@@ -81,6 +81,8 @@ function QueueDetailPage() {
     );
   }
 
+  const isDeadLetterQueue = queueInfo.deadLetterSourceQueues.length > 0;
+
   return (
     <div className="container mx-auto px-4 py-4">
       <div className="mb-4">
@@ -123,6 +125,16 @@ function QueueDetailPage() {
             </svg>
             Produce Message
           </button>
+          {isDeadLetterQueue && (
+            <button
+              onClick={() =>
+                document.getElementById('redrive-all-messages-button')?.click()
+              }
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              Redrive All Messages
+            </button>
+          )}
         </div>
       </header>
 
