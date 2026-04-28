@@ -5,6 +5,7 @@ import { Link } from '@tanstack/react-router';
 import { QueueInfo } from '#/lib/sqs';
 import SystemFilterCombobox from './SystemFilterCombobox';
 import ChevronDownIcon from './icons/ChevronDownIcon';
+import SearchIcon from './icons/SearchIcon';
 
 type QueueListResponse = {
   items: QueueInfo[];
@@ -70,6 +71,7 @@ export default function QueueList() {
   const [showDlqOnly, setShowDlqOnly] = useState(true);
   const [systemFilterText, setSystemFilterText] = useState('');
   const [environmentFilter, setEnvironmentFilter] = useState('');
+  const [textFilter, setTextFilter] = useState('');
   const PAGE_SIZE = 100;
 
   const { data, error, isLoading, isFetching } = useQuery({
@@ -100,6 +102,13 @@ export default function QueueList() {
   const queues = showDlqOnly
     ? allQueues.filter((q) => q.deadLetterSourceQueues.length > 0)
     : allQueues;
+  const normalizedTextFilter = textFilter.trim().toLowerCase();
+  const filteredQueues =
+    normalizedTextFilter === ''
+      ? queues
+      : queues.filter((queue) =>
+          queue.name.toLowerCase().includes(normalizedTextFilter),
+        );
   const nextToken = data?.nextToken;
   const hasMore = !!nextToken;
   const loading = isLoading || isFetching;
@@ -134,10 +143,23 @@ export default function QueueList() {
 
   return (
     <div>
+      <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+        Your Queues
+      </h2>
+
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-medium text-gray-900 dark:text-white">
-          Your Queues
-        </h2>
+        <div>
+          <div className="relative w-64">
+            <SearchIcon />
+            <input
+              type="text"
+              value={textFilter}
+              onChange={(event) => setTextFilter(event.target.value)}
+              placeholder="Filter queue name"
+              className="w-full pl-9 pr-3 py-1.5 text-sm font-medium rounded-md border bg-white text-gray-700 border-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
+            />
+          </div>
+        </div>
         <div className="flex items-center gap-2">
           <SystemFilterCombobox
             value={systemFilterText}
@@ -213,7 +235,7 @@ export default function QueueList() {
             </tr>
           </thead>
           <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-            {queues.length === 0 && !loading && (
+            {filteredQueues.length === 0 && !loading && (
               <tr>
                 <td colSpan={5} className="px-6 py-8">
                   <div className="text-center dark:text-gray-300 p-8 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg">
@@ -238,7 +260,7 @@ export default function QueueList() {
                 </td>
               </tr>
             )}
-            {queues.map((queue) => {
+            {filteredQueues.map((queue) => {
               const encodedUrl = btoa(queue.url);
               const isFifo = queue.attributes?.FifoQueue === 'true';
 
