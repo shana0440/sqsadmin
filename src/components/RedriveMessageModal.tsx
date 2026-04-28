@@ -10,7 +10,7 @@ interface RedriveMessageModalProps {
   isSubmitting: boolean;
   error: string | null;
   onClose: () => void;
-  onConfirm: (targetQueueUrl: string) => void;
+  onConfirm: (targetQueueUrl: string, messageBody: string) => void;
 }
 
 export default function RedriveMessageModal({
@@ -25,6 +25,7 @@ export default function RedriveMessageModal({
   const [selectedQueueUrl, setSelectedQueueUrl] = useState(
     deadLetterSourceQueues[0],
   );
+  const [editablePayload, setEditablePayload] = useState('');
 
   const queueOptions = useMemo(() => {
     return deadLetterSourceQueues.map((url) => ({
@@ -42,6 +43,24 @@ export default function RedriveMessageModal({
       return message.body;
     }
   }, [message]);
+
+  const payloadError = useMemo(() => {
+    if (!editablePayload.trim()) {
+      return 'Message body cannot be empty.';
+    }
+
+    try {
+      JSON.parse(editablePayload);
+    } catch (error) {
+      return `Message body must be valid JSON: ${error instanceof Error ? error.message : 'Unknown error'}`;
+    }
+
+    return null;
+  }, [editablePayload]);
+
+  useMemo(() => {
+    setEditablePayload(formattedPayload);
+  }, [formattedPayload]);
 
   if (!isOpen || !message) return null;
 
@@ -83,14 +102,15 @@ export default function RedriveMessageModal({
                 <AceEditor
                   mode="json"
                   theme="dracula"
-                  value={formattedPayload}
-                  readOnly={true}
+                  value={editablePayload}
+                  onChange={setEditablePayload}
+                  readOnly={false}
                   name="redrive-message-viewer"
                   editorProps={{ $blockScrolling: true }}
                   setOptions={{
                     showLineNumbers: true,
                     showGutter: true,
-                    highlightActiveLine: false,
+                    highlightActiveLine: true,
                     showPrintMargin: false,
                     tabSize: 2,
                     useWorker: false,
@@ -104,6 +124,11 @@ export default function RedriveMessageModal({
                   style={{ borderRadius: '4px' }}
                 />
               </div>
+              {payloadError && (
+                <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+                  {payloadError}
+                </p>
+              )}
             </div>
 
             <div className="mb-4">
@@ -143,8 +168,8 @@ export default function RedriveMessageModal({
               </button>
               <button
                 type="button"
-                onClick={() => onConfirm(selectedQueueUrl)}
-                disabled={isSubmitting || !selectedQueueUrl}
+                onClick={() => onConfirm(selectedQueueUrl, editablePayload)}
+                disabled={isSubmitting || !selectedQueueUrl || !!payloadError}
                 className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
               >
                 {isSubmitting ? 'Redriving...' : 'Redrive Message'}

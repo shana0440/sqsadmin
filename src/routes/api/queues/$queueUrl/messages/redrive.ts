@@ -23,7 +23,8 @@ export const Route = createFileRoute('/api/queues/$queueUrl/messages/redrive')({
             return Response.json({ error: 'Forbidden' }, { status: 403 });
           }
 
-          const { messageId, targetQueueUrl } = await request.json();
+          const { messageId, targetQueueUrl, messageBody } =
+            await request.json();
 
           if (!messageId || typeof messageId !== 'string') {
             return Response.json(
@@ -39,11 +40,30 @@ export const Route = createFileRoute('/api/queues/$queueUrl/messages/redrive')({
             );
           }
 
+          if (!messageBody || typeof messageBody !== 'string') {
+            return Response.json(
+              { error: 'Message body is required' },
+              { status: 400 },
+            );
+          }
+
+          if (!messageBody.trim()) {
+            return Response.json(
+              { error: 'Message body cannot be empty' },
+              { status: 400 },
+            );
+          }
+
           if (!canAccessQueue(targetQueueUrl, email)) {
             return Response.json({ error: 'Forbidden' }, { status: 403 });
           }
 
-          await redriveMessage(decodedQueueUrl, targetQueueUrl, messageId);
+          await redriveMessage(
+            decodedQueueUrl,
+            targetQueueUrl,
+            messageId,
+            messageBody,
+          );
           return Response.json({ success: true });
         } catch (error) {
           const errorMessage =

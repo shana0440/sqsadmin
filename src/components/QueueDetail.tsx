@@ -148,7 +148,10 @@ export default function QueueDetail({
     setRedriveError(null);
   };
 
-  const handleRedriveMessage = async (targetQueueUrl: string) => {
+  const handleRedriveMessage = async (
+    targetQueueUrl: string,
+    messageBody: string,
+  ) => {
     if (!selectedMessageForRedrive) return;
 
     const messageId = selectedMessageForRedrive.id;
@@ -160,7 +163,7 @@ export default function QueueDetail({
       const response = await fetch(`/api/queues/${queueUrl}/messages/redrive`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messageId, targetQueueUrl }),
+        body: JSON.stringify({ messageId, targetQueueUrl, messageBody }),
       });
 
       if (!response.ok) {

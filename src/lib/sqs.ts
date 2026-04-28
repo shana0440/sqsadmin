@@ -456,6 +456,7 @@ export async function redriveMessage(
   sourceQueueUrl: string,
   targetQueueUrl: string,
   messageId: string,
+  messageBody: string,
 ) {
   const message = await receiveMessageById(sourceQueueUrl, messageId);
 
@@ -472,7 +473,7 @@ export async function redriveMessage(
     MessageDeduplicationId?: string;
   } = {
     QueueUrl: targetQueueUrl,
-    MessageBody: message.body,
+    MessageBody: messageBody,
   };
 
   await client.send(new SendMessageCommand(commandInput));
