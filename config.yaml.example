@@ -2,6 +2,14 @@ systems:
   demo:
     # Queues accessible by the demo system
     - "demo-greeting-*"
+
+environment:
+  # Queues grouped by environment for UI filtering
+  uat:
+    - "uat-*"
+  production:
+    - "production-*"
+
 system_users:
   # Admin has access to all queues
   admin:

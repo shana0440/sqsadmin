@@ -4,14 +4,17 @@ import yaml from 'js-yaml';
 
 type QueueNamePrefix = string;
 type SystemName = string;
+type EnvironmentName = string;
 type Email = string;
 
 type SystemConfig = Record<SystemName, QueueNamePrefix[]>;
+type EnvironmentConfig = Record<EnvironmentName, QueueNamePrefix[]>;
 type UserConfig = Record<SystemName, Email[]>;
 
 export type AppConfig = {
   systems: SystemConfig;
   systemUsers: UserConfig;
+  environments: EnvironmentConfig;
 };
 
 function parseConfig(config: unknown): AppConfig {
@@ -33,6 +36,33 @@ function parseConfig(config: unknown): AppConfig {
     config.system_users === null
   ) {
     throw new Error('Config must have a "system_users" object');
+  }
+
+  const environmentsConfig =
+    'environments' in config
+      ? config.environments
+      : 'environment' in config
+        ? config.environment
+        : {};
+
+  if (typeof environmentsConfig !== 'object' || environmentsConfig === null) {
+    throw new Error('Config "environments" must be an object when provided');
+  }
+
+  for (const [environment, patterns] of Object.entries(environmentsConfig)) {
+    if (!Array.isArray(patterns)) {
+      throw new Error(
+        `Queue name patterns for environment "${environment}" must be an array`,
+      );
+    }
+
+    for (const pattern of patterns) {
+      if (typeof pattern !== 'string') {
+        throw new Error(
+          `Queue name pattern "${pattern}" for environment "${environment}" must be a string`,
+        );
+      }
+    }
   }
 
   for (const [system, prefixs] of Object.entries(config.systems)) {
@@ -59,6 +89,7 @@ function parseConfig(config: unknown): AppConfig {
   return {
     systems: config.systems as SystemConfig,
     systemUsers: config.system_users as UserConfig,
+    environments: environmentsConfig as EnvironmentConfig,
   };
 }
 
@@ -132,4 +163,16 @@ export function getQueueNamePatternsBySystem(
 ): QueueNamePrefix[] {
   const config = getConfig();
   return config.systems[system] || [];
+}
+
+export function getEnvironmentNames(): string[] {
+  const config = getConfig();
+  return Object.keys(config.environments);
+}
+
+export function getQueueNamePatternsByEnvironment(
+  environment: string,
+): QueueNamePrefix[] {
+  const config = getConfig();
+  return config.environments[environment] || [];
 }

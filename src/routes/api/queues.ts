@@ -4,8 +4,11 @@ import { getAuthUserEmail } from '#/utils/session.server';
 import {
   getAllowedQueueNamePatternsByEmail,
   getAllowedSystemsByEmail,
+  getEnvironmentNames,
+  getQueueNamePatternsByEnvironment,
   getQueueNamePatternsBySystem,
 } from '#/lib/config';
+import { doesQueueNameMatchPattern } from '#/lib/permission';
 
 export const Route = createFileRoute('/api/queues')({
   server: {
@@ -19,8 +22,10 @@ export const Route = createFileRoute('/api/queues')({
           }
 
           const allowedSystems = getAllowedSystemsByEmail(email);
+          const environments = getEnvironmentNames();
           const { searchParams } = new URL(request.url);
           const system = searchParams.get('system') || '';
+          const environment = searchParams.get('environment') || '';
           const queueNamePatterns =
             system && allowedSystems.includes(system)
               ? getQueueNamePatternsBySystem(system)
@@ -46,10 +51,25 @@ export const Route = createFileRoute('/api/queues')({
             }),
           );
 
+          const environmentPatterns =
+            environment && environments.includes(environment)
+              ? getQueueNamePatternsByEnvironment(environment)
+              : [];
+
+          const filteredQueues =
+            environmentPatterns.length > 0
+              ? queuesWithAttributes.filter((queue) =>
+                  environmentPatterns.some((pattern) =>
+                    doesQueueNameMatchPattern(queue.name, pattern),
+                  ),
+                )
+              : queuesWithAttributes;
+
           return Response.json({
-            items: queuesWithAttributes,
+            items: filteredQueues,
             nextToken: newNextToken,
             systems: allowedSystems,
+            environments,
           });
         } catch (error) {
           console.error('Error in /api/queues:', error);

@@ -1,19 +1,23 @@
 import { useState } from 'react';
+import { Select } from '@headlessui/react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { QueueInfo } from '#/lib/sqs';
 import SystemFilterCombobox from './SystemFilterCombobox';
+import ChevronDownIcon from './icons/ChevronDownIcon';
 
 type QueueListResponse = {
   items: QueueInfo[];
   nextToken?: string;
   systems?: string[];
+  environments?: string[];
 };
 
 const fetchQueues = async (
   pageToken: string | undefined,
   pageSize: number,
   systemFilterText: string,
+  environmentFilter: string,
 ): Promise<QueueListResponse> => {
   const params = new URLSearchParams();
   params.set('limit', String(pageSize));
@@ -22,6 +26,9 @@ const fetchQueues = async (
   }
   if (systemFilterText.trim()) {
     params.set('system', systemFilterText.trim());
+  }
+  if (environmentFilter.trim()) {
+    params.set('environment', environmentFilter.trim());
   }
 
   const query = `/api/queues?${params.toString()}`;
@@ -40,15 +47,24 @@ export default function QueueList() {
   const [page, setPage] = useState(1);
   const [showDlqOnly, setShowDlqOnly] = useState(true);
   const [systemFilterText, setSystemFilterText] = useState('');
+  const [environmentFilter, setEnvironmentFilter] = useState('');
   const PAGE_SIZE = 100;
 
   const { data, error, isLoading, isFetching } = useQuery({
-    queryKey: ['queues', pageToken, PAGE_SIZE, systemFilterText],
-    queryFn: () => fetchQueues(pageToken, PAGE_SIZE, systemFilterText),
+    queryKey: [
+      'queues',
+      pageToken,
+      PAGE_SIZE,
+      systemFilterText,
+      environmentFilter,
+    ],
+    queryFn: () =>
+      fetchQueues(pageToken, PAGE_SIZE, systemFilterText, environmentFilter),
   });
 
   const allQueues = data?.items ?? [];
   const systemNames = data?.systems ?? [];
+  const environmentNames = data?.environments ?? [];
   const queues = showDlqOnly
     ? allQueues.filter((q) => q.deadLetterSourceQueues.length > 0)
     : allQueues;
@@ -96,6 +112,24 @@ export default function QueueList() {
             options={systemNames}
             onChange={setSystemFilterText}
           />
+
+          <div className="relative">
+            <Select
+              value={environmentFilter}
+              onChange={(event) => setEnvironmentFilter(event.target.value)}
+              className="appearance-none px-3 pr-8 py-1.5 text-sm font-medium rounded-md border bg-white text-gray-700 border-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
+            >
+              <option value="">All Environments</option>
+              {environmentNames.map((environment) => (
+                <option key={environment} value={environment}>
+                  {environment}
+                </option>
+              ))}
+            </Select>
+            <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-gray-500 dark:text-gray-300">
+              <ChevronDownIcon />
+            </span>
+          </div>
 
           <button
             onClick={() => setShowDlqOnly(!showDlqOnly)}

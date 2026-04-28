@@ -24,6 +24,7 @@ This project reads `config.yaml` from the project root at startup. It is require
 
 - Which queue name patterns each signed-in system can access
 - The users belongs to which system
+- (Optional) Environment queue patterns used by the queue list environment filter
 
 ### Environment Variables
 

@@ -1,3 +1,8 @@
+environments:
+  uat:
+    - "uat-*"
+  production:
+    - "production-*"
 systems:
   example:
     - "production-example-*"
