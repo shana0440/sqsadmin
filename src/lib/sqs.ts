@@ -10,6 +10,7 @@ import {
   DeleteQueueCommand,
   StartMessageMoveTaskCommand,
   ListMessageMoveTasksCommand,
+  CancelMessageMoveTaskCommand,
   ListMessageMoveTasksResultEntry,
 } from '@aws-sdk/client-sqs';
 
@@ -645,6 +646,17 @@ export async function listMessageMoveTasks(
     );
     return [];
   }
+}
+
+export async function cancelMessageMoveTask(
+  taskHandle: string,
+): Promise<number | undefined> {
+  const command = new CancelMessageMoveTaskCommand({
+    TaskHandle: taskHandle,
+  });
+
+  const response = await client.send(command);
+  return response.ApproximateNumberOfMessagesMoved;
 }
 
 export interface CreateQueueParams {

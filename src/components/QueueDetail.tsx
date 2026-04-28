@@ -5,6 +5,7 @@ import 'react-json-view-lite/dist/index.css';
 import AceEditor from './AceEditor';
 import RedriveMessageModal from './RedriveMessageModal';
 import RedriveAllMessagesModal from './RedriveAllMessagesModal';
+import CancelMoveTaskModal from './CancelMoveTaskModal';
 
 interface QueueDetailProps {
   queueUrl: string;
@@ -16,6 +17,7 @@ interface QueueDetailProps {
 interface MessageMoveTaskStatusResponse {
   hasRunningTask: boolean;
   runningTask?: {
+    TaskHandle?: string;
     Status?: string;
     ApproximateNumberOfMessagesMoved?: number;
     ApproximateNumberOfMessagesToMove?: number;
@@ -150,6 +152,12 @@ export default function QueueDetail({
   const [isRedriveAllModalOpen, setIsRedriveAllModalOpen] = useState(false);
   const [redrivingAllMessages, setRedrivingAllMessages] = useState(false);
   const [redriveAllError, setRedriveAllError] = useState<string | null>(null);
+  const [cancellingRedriveTask, setCancellingRedriveTask] = useState(false);
+  const [cancelRedriveError, setCancelRedriveError] = useState<string | null>(
+    null,
+  );
+  const [isCancelMoveTaskModalOpen, setIsCancelMoveTaskModalOpen] =
+    useState(false);
 
   const isDeadLetterQueue = deadLetterSourceQueues.length > 0;
   const redriveTaskStatusQueryKey = ['redrive-task-status', queueUrl];
@@ -184,12 +192,14 @@ export default function QueueDetail({
 
   const handleOpenRedriveAllModal = () => {
     setRedriveAllError(null);
+    setCancelRedriveError(null);
     setIsRedriveAllModalOpen(true);
   };
 
   const handleCloseRedriveAllModal = () => {
     setIsRedriveAllModalOpen(false);
     setRedriveAllError(null);
+    setCancelRedriveError(null);
   };
 
   const handleRedriveMessage = async (
@@ -299,6 +309,54 @@ export default function QueueDetail({
       console.error('Error starting redrive-all task:', err);
     } finally {
       setRedrivingAllMessages(false);
+    }
+  };
+
+  const handleOpenCancelMoveTaskModal = () => {
+    setCancelRedriveError(null);
+    setIsCancelMoveTaskModalOpen(true);
+  };
+
+  const handleCloseCancelMoveTaskModal = () => {
+    if (!cancellingRedriveTask) {
+      setIsCancelMoveTaskModalOpen(false);
+    }
+  };
+
+  const handleCancelRedriveTask = async () => {
+    const taskHandle = redriveTaskStatus?.runningTask?.TaskHandle;
+
+    if (!taskHandle) {
+      setCancelRedriveError('No running redrive task handle found to cancel.');
+      return;
+    }
+
+    try {
+      setCancellingRedriveTask(true);
+      setCancelRedriveError(null);
+
+      const response = await fetch(`/api/queues/${queueUrl}/redrive-all`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskHandle }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to cancel redrive task');
+      }
+
+      setIsCancelMoveTaskModalOpen(false);
+      queryClient.invalidateQueries({ queryKey: redriveTaskStatusQueryKey });
+      mutate();
+    } catch (err) {
+      setCancelRedriveError(
+        err instanceof Error ? err.message : 'Failed to cancel redrive task',
+      );
+      console.error('Error cancelling redrive task:', err);
+    } finally {
+      setCancellingRedriveTask(false);
     }
   };
 
@@ -529,15 +587,33 @@ export default function QueueDetail({
               </button>
             </div>
             {redriveTaskStatus?.hasRunningTask && (
-              <div className="mt-3 text-sm text-green-700 dark:text-green-400">
-                Redrive task is currently running
-                {typeof redriveTaskStatus.runningTask?.ApproximateNumberOfMessagesMoved ===
-                  'number' &&
-                typeof redriveTaskStatus.runningTask
-                  ?.ApproximateNumberOfMessagesToMove === 'number'
-                  ? ` (${redriveTaskStatus.runningTask.ApproximateNumberOfMessagesMoved}/${redriveTaskStatus.runningTask.ApproximateNumberOfMessagesToMove} moved)`
-                  : ''}
-                .
+              <div className="mt-3">
+                <div className="text-sm text-green-700 dark:text-green-400">
+                  Redrive task is currently running
+                  {typeof redriveTaskStatus.runningTask?.ApproximateNumberOfMessagesMoved ===
+                    'number' &&
+                  typeof redriveTaskStatus.runningTask
+                    ?.ApproximateNumberOfMessagesToMove === 'number'
+                    ? ` (${redriveTaskStatus.runningTask.ApproximateNumberOfMessagesMoved}/${redriveTaskStatus.runningTask.ApproximateNumberOfMessagesToMove} moved)`
+                    : ''}
+                  .
+                </div>
+                {redriveTaskStatus.runningTask?.Status === 'RUNNING' &&
+                  redriveTaskStatus.runningTask?.TaskHandle && (
+                    <button
+                      type="button"
+                      onClick={handleOpenCancelMoveTaskModal}
+                      disabled={cancellingRedriveTask}
+                      className="mt-2 inline-flex items-center px-2 py-1 border border-red-300 dark:border-red-700 text-xs font-medium rounded text-red-700 dark:text-red-300 bg-white dark:bg-gray-700 hover:bg-red-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-1 focus:ring-red-500 disabled:opacity-50"
+                    >
+                      Cancel Move Task
+                    </button>
+                  )}
+                {cancelRedriveError && (
+                  <div className="mt-2 text-sm text-red-600 dark:text-red-400">
+                    {cancelRedriveError}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -860,6 +936,14 @@ export default function QueueDetail({
         error={redriveAllError}
         onClose={handleCloseRedriveAllModal}
         onConfirm={handleRedriveAllMessages}
+      />
+
+      <CancelMoveTaskModal
+        isOpen={isCancelMoveTaskModalOpen}
+        isSubmitting={cancellingRedriveTask}
+        error={cancelRedriveError}
+        onClose={handleCloseCancelMoveTaskModal}
+        onConfirm={handleCancelRedriveTask}
       />
     </div>
   );
