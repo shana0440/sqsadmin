@@ -1,7 +1,11 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { listQueues, getQueueAttributes } from '#/lib/sqs'
 import { getAuthUserEmail } from '#/utils/session.server'
-import { getAllowedQueueNamePatternsByEmail } from '#/lib/config'
+import {
+  getAllowedQueueNamePatternsByEmail,
+  getAllowedSystemsByEmail,
+  getQueueNamePatternsBySystem,
+} from '#/lib/config'
 
 export const Route = createFileRoute('/api/queues')({
   server: {
@@ -14,12 +18,18 @@ export const Route = createFileRoute('/api/queues')({
             return Response.json({ error: 'Unauthorized' }, { status: 401 })
           }
 
-          const queueNamePatterns = getAllowedQueueNamePatternsByEmail(email)
+          const allowedSystems = getAllowedSystemsByEmail(email)
+          const { searchParams } = new URL(request.url)
+          const system = searchParams.get('system') || ''
+          const queueNamePatterns =
+            system && allowedSystems.includes(system)
+              ? getQueueNamePatternsBySystem(system)
+              : getAllowedQueueNamePatternsByEmail(email)
+
           if (queueNamePatterns.length === 0) {
             return Response.json({ items: [], nextToken: undefined })
           }
 
-          const { searchParams } = new URL(request.url)
           const nextToken = searchParams.get('nextToken') || undefined
           const limit = parseInt(searchParams.get('limit') || '100', 10)
 
@@ -39,6 +49,7 @@ export const Route = createFileRoute('/api/queues')({
           return Response.json({
             items: queuesWithAttributes,
             nextToken: newNextToken,
+            systems: allowedSystems,
           })
         } catch (error) {
           console.error('Error in /api/queues:', error)

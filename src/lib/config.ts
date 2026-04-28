@@ -111,3 +111,25 @@ export function getAllowedQueueNamePatternsByEmail(
 
   return Array.from(new Set(queueNamePatterns));
 }
+
+export function getAllowedSystemsByEmail(email: Email): string[] {
+  const config = getConfig();
+
+  const isAdmin = config.systemUsers.admin?.includes(email) ?? false;
+  if (isAdmin) {
+    return Object.entries(config.systems).map(([system]) => system);
+  }
+
+  const matchedSystems = Object.entries(config.systemUsers)
+    .filter(([, users]) => users.includes(email))
+    .map(([system]) => system);
+
+  return matchedSystems;
+}
+
+export function getQueueNamePatternsBySystem(
+  system: string,
+): QueueNamePrefix[] {
+  const config = getConfig();
+  return config.systems[system] || [];
+}

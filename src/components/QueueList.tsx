@@ -2,19 +2,29 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { QueueInfo } from '#/lib/sqs'
+import SystemFilterCombobox from './SystemFilterCombobox'
 
 type QueueListResponse = {
   items: QueueInfo[]
   nextToken?: string
+  systems?: string[]
 }
 
 const fetchQueues = async (
   pageToken: string | undefined,
   pageSize: number,
+  systemFilterText: string,
 ): Promise<QueueListResponse> => {
-  const query = pageToken
-    ? `/api/queues?nextToken=${encodeURIComponent(pageToken)}&limit=${pageSize}`
-    : `/api/queues?limit=${pageSize}`
+  const params = new URLSearchParams()
+  params.set('limit', String(pageSize))
+  if (pageToken) {
+    params.set('nextToken', pageToken)
+  }
+  if (systemFilterText.trim()) {
+    params.set('system', systemFilterText.trim())
+  }
+
+  const query = `/api/queues?${params.toString()}`
 
   const response = await fetch(query)
 
@@ -29,14 +39,16 @@ export default function QueueList() {
   const [pageToken, setPageToken] = useState<string | undefined>(undefined)
   const [page, setPage] = useState(1)
   const [showDlqOnly, setShowDlqOnly] = useState(true)
+  const [systemFilterText, setSystemFilterText] = useState('')
   const PAGE_SIZE = 100
 
   const { data, error, isLoading, isFetching } = useQuery({
-    queryKey: ['queues', pageToken, PAGE_SIZE],
-    queryFn: () => fetchQueues(pageToken, PAGE_SIZE),
+    queryKey: ['queues', pageToken, PAGE_SIZE, systemFilterText],
+    queryFn: () => fetchQueues(pageToken, PAGE_SIZE, systemFilterText),
   })
 
   const allQueues = data?.items ?? []
+  const systemNames = data?.systems ?? []
   const queues = showDlqOnly
     ? allQueues.filter((q) => q.deadLetterSourceQueues.length > 0)
     : allQueues
@@ -68,35 +80,7 @@ export default function QueueList() {
 
   if (error) {
     return (
-      <div className="p-4 text-center text-red-500">
-        Error: {error.message}
-      </div>
-    )
-  }
-
-  if (queues.length === 0 && !loading) {
-    return (
-      <div className="p-4">
-        <div className="text-center dark:text-gray-300 p-8 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg">
-          <svg
-            className="h-12 w-12 mx-auto text-gray-400 dark:text-gray-600"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="1"
-              d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-            />
-          </svg>
-          <p className="mt-2 text-lg font-medium">No queues found</p>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            No accessible queues are available.
-          </p>
-        </div>
-      </div>
+      <div className="p-4 text-center text-red-500">Error: {error.message}</div>
     )
   }
 
@@ -106,16 +90,24 @@ export default function QueueList() {
         <h2 className="text-lg font-medium text-gray-900 dark:text-white">
           Your Queues
         </h2>
-        <button
-          onClick={() => setShowDlqOnly(!showDlqOnly)}
-          className={`px-3 py-1.5 text-sm font-medium rounded-md border cursor-pointer ${
-            showDlqOnly
-              ? 'bg-red-100 text-red-800 border-red-300 dark:bg-red-900 dark:text-red-200 dark:border-red-700'
-              : 'bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600'
-          }`}
-        >
-          {showDlqOnly ? 'Showing DLQ Only' : 'Showing All Queues'}
-        </button>
+        <div className="flex items-center gap-2">
+          <SystemFilterCombobox
+            value={systemFilterText}
+            options={systemNames}
+            onChange={setSystemFilterText}
+          />
+
+          <button
+            onClick={() => setShowDlqOnly(!showDlqOnly)}
+            className={`px-3 py-1.5 text-sm font-medium rounded-md border cursor-pointer ${
+              showDlqOnly
+                ? 'bg-red-100 text-red-800 border-red-300 dark:bg-red-900 dark:text-red-200 dark:border-red-700'
+                : 'bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600'
+            }`}
+          >
+            {showDlqOnly ? 'Showing DLQ Only' : 'Showing All Queues'}
+          </button>
+        </div>
       </div>
 
       <div className="overflow-x-auto">
@@ -155,6 +147,31 @@ export default function QueueList() {
             </tr>
           </thead>
           <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+            {queues.length === 0 && !loading && (
+              <tr>
+                <td colSpan={5} className="px-6 py-8">
+                  <div className="text-center dark:text-gray-300 p-8 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg">
+                    <svg
+                      className="h-12 w-12 mx-auto text-gray-400 dark:text-gray-600"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="1"
+                        d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                      />
+                    </svg>
+                    <p className="mt-2 text-lg font-medium">No queues found</p>
+                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                      No accessible queues are available.
+                    </p>
+                  </div>
+                </td>
+              </tr>
+            )}
             {queues.map((queue) => {
               const encodedUrl = btoa(queue.url)
               const isFifo = queue.attributes?.FifoQueue === 'true'
