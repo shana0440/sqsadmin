@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
+import { GroupedQueueOptions } from '#/lib/queue';
 import CloseButton from './CloseButton';
 
 interface RedriveAllMessagesModalProps {
   isOpen: boolean;
-  deadLetterSourceQueues: string[];
+  groupedQueueOptions: GroupedQueueOptions;
   isSubmitting: boolean;
   error: string | null;
   onClose: () => void;
@@ -15,7 +16,7 @@ interface RedriveAllMessagesModalProps {
 
 export default function RedriveAllMessagesModal({
   isOpen,
-  deadLetterSourceQueues,
+  groupedQueueOptions,
   isSubmitting,
   error,
   onClose,
@@ -27,20 +28,23 @@ export default function RedriveAllMessagesModal({
   );
   const [maxMessagesPerSecond, setMaxMessagesPerSecond] = useState('100');
 
+  const queueGroups = groupedQueueOptions;
+
+  const hasAnyQueueOption =
+    queueGroups.sourceQueueOptions.length > 0 ||
+    queueGroups.otherQueueOptions.length > 0;
+
   useEffect(() => {
     if (isOpen) {
-      setSelectedQueueUrl(deadLetterSourceQueues[0] || '');
+      setSelectedQueueUrl(
+        queueGroups.sourceQueueOptions[0]?.url ||
+          queueGroups.otherQueueOptions[0]?.url ||
+          '',
+      );
       setVelocityMode('system');
       setMaxMessagesPerSecond('100');
     }
-  }, [isOpen, deadLetterSourceQueues]);
-
-  const queueOptions = useMemo(() => {
-    return deadLetterSourceQueues.map((url) => ({
-      url,
-      name: url.split('/').pop() || url,
-    }));
-  }, [deadLetterSourceQueues]);
+  }, [isOpen, groupedQueueOptions]);
 
   const validationError = useMemo(() => {
     if (!selectedQueueUrl) {
@@ -113,12 +117,29 @@ export default function RedriveAllMessagesModal({
                 value={selectedQueueUrl}
                 onChange={(e) => setSelectedQueueUrl(e.target.value)}
                 className="mt-1 block w-full border dark:bg-gray-800 dark:text-white border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                disabled={!hasAnyQueueOption}
               >
-                {queueOptions.map((queue) => (
-                  <option key={queue.url} value={queue.url}>
-                    {queue.name}
-                  </option>
-                ))}
+                {!hasAnyQueueOption && (
+                  <option value="">No accessible queues available</option>
+                )}
+                {queueGroups.sourceQueueOptions.length > 0 && (
+                  <optgroup label="DLQ Source Queues">
+                    {queueGroups.sourceQueueOptions.map((queue) => (
+                      <option key={queue.url} value={queue.url}>
+                        {queue.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+                {queueGroups.otherQueueOptions.length > 0 && (
+                  <optgroup label="Other Accessible Queues">
+                    {queueGroups.otherQueueOptions.map((queue) => (
+                      <option key={queue.url} value={queue.url}>
+                        {queue.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
               </select>
             </div>
 
@@ -208,7 +229,9 @@ export default function RedriveAllMessagesModal({
               <button
                 type="button"
                 onClick={handleConfirm}
-                disabled={isSubmitting || !!validationError}
+                disabled={
+                  isSubmitting || !!validationError || !hasAnyQueueOption
+                }
                 className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
               >
                 {isSubmitting ? 'Starting...' : 'Start Redrive'}

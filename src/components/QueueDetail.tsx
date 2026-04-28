@@ -1,6 +1,7 @@
 import { useState, Fragment, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Message } from '#/lib/sqs';
+import { Message, QueueInfo } from '#/lib/sqs';
+import { groupQueuesByDeadLetterSources } from '#/lib/queue';
 import 'react-json-view-lite/dist/index.css';
 import AceEditor from './AceEditor';
 import RedriveMessageModal from './RedriveMessageModal';
@@ -22,6 +23,11 @@ interface MessageMoveTaskStatusResponse {
     ApproximateNumberOfMessagesMoved?: number;
     ApproximateNumberOfMessagesToMove?: number;
   };
+}
+
+interface QueueListResponse {
+  items: QueueInfo[];
+  nextToken?: string;
 }
 
 export default function QueueDetail({
@@ -161,6 +167,52 @@ export default function QueueDetail({
 
   const isDeadLetterQueue = deadLetterSourceQueues.length > 0;
   const redriveTaskStatusQueryKey = ['redrive-task-status', queueUrl];
+
+  const fetchAccessibleQueueUrls = async (): Promise<string[]> => {
+    const allQueueUrls: string[] = [];
+    let nextToken: string | undefined;
+
+    do {
+      const params = new URLSearchParams();
+      params.set('limit', '100');
+      if (nextToken) {
+        params.set('nextToken', nextToken);
+      }
+
+      const response = await fetch(`/api/queues?${params.toString()}`);
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch queue options for redrive: ${response.statusText}`,
+        );
+      }
+
+      const data: QueueListResponse = await response.json();
+      allQueueUrls.push(...data.items.map((queue) => queue.url));
+      nextToken = data.nextToken;
+    } while (nextToken);
+
+    return Array.from(new Set(allQueueUrls));
+  };
+
+  const { data: accessibleQueueUrls = [] } = useQuery({
+    queryKey: ['accessible-queue-urls-for-redrive'],
+    queryFn: fetchAccessibleQueueUrls,
+  });
+
+  const redriveTargetQueueUrls =
+    accessibleQueueUrls.length > 0
+      ? accessibleQueueUrls
+      : deadLetterSourceQueues;
+
+  const groupedRedriveTargetQueueOptions = useMemo(
+    () =>
+      groupQueuesByDeadLetterSources(
+        redriveTargetQueueUrls,
+        deadLetterSourceQueues,
+      ),
+    [redriveTargetQueueUrls, deadLetterSourceQueues],
+  );
 
   const fetchRedriveTaskStatus =
     async (): Promise<MessageMoveTaskStatusResponse> => {
@@ -777,8 +829,11 @@ export default function QueueDetail({
                                   handleOpenRedriveModal(message);
                                 }}
                                 disabled={
-                                  deadLetterSourceQueues.length === 0 ||
-                                  redrivingMessageIds.has(message.id)
+                                  groupedRedriveTargetQueueOptions
+                                    .sourceQueueOptions.length +
+                                    groupedRedriveTargetQueueOptions
+                                      .otherQueueOptions.length ===
+                                    0 || redrivingMessageIds.has(message.id)
                                 }
                                 className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 disabled:opacity-50 mr-4"
                               >
@@ -922,7 +977,7 @@ export default function QueueDetail({
         key={selectedMessageForRedrive?.id}
         isOpen={!!selectedMessageForRedrive}
         message={selectedMessageForRedrive}
-        deadLetterSourceQueues={deadLetterSourceQueues}
+        groupedQueueOptions={groupedRedriveTargetQueueOptions}
         isSubmitting={
           !!selectedMessageForRedrive &&
           redrivingMessageIds.has(selectedMessageForRedrive.id)
@@ -934,7 +989,7 @@ export default function QueueDetail({
 
       <RedriveAllMessagesModal
         isOpen={isRedriveAllModalOpen}
-        deadLetterSourceQueues={deadLetterSourceQueues}
+        groupedQueueOptions={groupedRedriveTargetQueueOptions}
         isSubmitting={redrivingAllMessages}
         error={redriveAllError}
         onClose={handleCloseRedriveAllModal}

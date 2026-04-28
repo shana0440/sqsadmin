@@ -1,12 +1,13 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Message } from '#/lib/sqs';
+import { GroupedQueueOptions } from '#/lib/queue';
 import AceEditor from './AceEditor';
 import CloseButton from './CloseButton';
 
 interface RedriveMessageModalProps {
   isOpen: boolean;
   message: Message | null;
-  deadLetterSourceQueues: string[];
+  groupedQueueOptions: GroupedQueueOptions;
   isSubmitting: boolean;
   error: string | null;
   onClose: () => void;
@@ -16,23 +17,16 @@ interface RedriveMessageModalProps {
 export default function RedriveMessageModal({
   isOpen,
   message,
-  deadLetterSourceQueues,
+  groupedQueueOptions,
   isSubmitting,
   error,
   onClose,
   onConfirm,
 }: RedriveMessageModalProps) {
-  const [selectedQueueUrl, setSelectedQueueUrl] = useState(
-    deadLetterSourceQueues[0],
-  );
+  const [selectedQueueUrl, setSelectedQueueUrl] = useState('');
   const [editablePayload, setEditablePayload] = useState('');
 
-  const queueOptions = useMemo(() => {
-    return deadLetterSourceQueues.map((url) => ({
-      url,
-      name: url.split('/').pop() || url,
-    }));
-  }, [deadLetterSourceQueues]);
+  const queueGroups = groupedQueueOptions;
 
   const formattedPayload = useMemo(() => {
     if (!message?.body) return '';
@@ -58,11 +52,25 @@ export default function RedriveMessageModal({
     return null;
   }, [editablePayload]);
 
-  useMemo(() => {
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const defaultQueueUrl =
+      queueGroups.sourceQueueOptions[0]?.url ||
+      queueGroups.otherQueueOptions[0]?.url ||
+      '';
+
+    setSelectedQueueUrl(defaultQueueUrl);
     setEditablePayload(formattedPayload);
-  }, [formattedPayload]);
+  }, [formattedPayload, isOpen, groupedQueueOptions]);
 
   if (!isOpen || !message) return null;
+
+  const hasAnyQueueOption =
+    queueGroups.sourceQueueOptions.length > 0 ||
+    queueGroups.otherQueueOptions.length > 0;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -82,7 +90,8 @@ export default function RedriveMessageModal({
 
           <div className="mt-4">
             <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">
-              Select which source queue this message should be redriven to.
+              Choose a target queue. DLQ source queues are grouped separately
+              for convenience.
             </p>
 
             <div className="mb-4 p-3 rounded-md bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
@@ -136,19 +145,36 @@ export default function RedriveMessageModal({
                 htmlFor="targetQueueUrl"
                 className="block text-sm font-medium text-gray-700 dark:text-gray-300"
               >
-                Dead Letter Source Queue
+                Target Queue
               </label>
               <select
                 id="targetQueueUrl"
                 value={selectedQueueUrl}
                 onChange={(e) => setSelectedQueueUrl(e.target.value)}
                 className="mt-1 block w-full border dark:bg-gray-800 dark:text-white border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                disabled={!hasAnyQueueOption}
               >
-                {queueOptions.map((queue) => (
-                  <option key={queue.url} value={queue.url}>
-                    {queue.name}
-                  </option>
-                ))}
+                {!hasAnyQueueOption && (
+                  <option value="">No accessible queues available</option>
+                )}
+                {queueGroups.sourceQueueOptions.length > 0 && (
+                  <optgroup label="DLQ Source Queues">
+                    {queueGroups.sourceQueueOptions.map((queue) => (
+                      <option key={queue.url} value={queue.url}>
+                        {queue.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+                {queueGroups.otherQueueOptions.length > 0 && (
+                  <optgroup label="Other Accessible Queues">
+                    {queueGroups.otherQueueOptions.map((queue) => (
+                      <option key={queue.url} value={queue.url}>
+                        {queue.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
               </select>
             </div>
 
@@ -169,7 +195,12 @@ export default function RedriveMessageModal({
               <button
                 type="button"
                 onClick={() => onConfirm(selectedQueueUrl, editablePayload)}
-                disabled={isSubmitting || !selectedQueueUrl || !!payloadError}
+                disabled={
+                  isSubmitting ||
+                  !selectedQueueUrl ||
+                  !!payloadError ||
+                  !hasAnyQueueOption
+                }
                 className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
               >
                 {isSubmitting ? 'Redriving...' : 'Redrive Message'}

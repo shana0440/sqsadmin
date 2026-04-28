@@ -16,6 +16,7 @@ import {
 
 import { SQSClientConfig } from '@aws-sdk/client-sqs';
 import { doesQueueNameMatchPattern } from './permission';
+import { getQueueNameFromUrl } from './queue';
 
 // Configure SQS client
 const clientConfig: SQSClientConfig = {
@@ -63,7 +64,7 @@ function filterQueueUrlsByPatterns(
   }
 
   return queueUrls.filter((url) => {
-    const queueName = url.split('/').pop() || url;
+    const queueName = getQueueNameFromUrl(url);
     return queueNamePatterns.some((pattern) =>
       doesQueueNameMatchPattern(queueName, pattern),
     );
@@ -100,7 +101,7 @@ export async function listQueues(
       items: await Promise.all(
         filteredQueueUrls.map(async (url) => ({
           url,
-          name: url.split('/').pop() || url,
+          name: getQueueNameFromUrl(url),
           deadLetterSourceQueues: await listDeadLetterSourceQueues(url),
         })),
       ),

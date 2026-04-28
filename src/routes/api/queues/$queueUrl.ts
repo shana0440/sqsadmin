@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { getQueueAttributes, listDeadLetterSourceQueues } from '#/lib/sqs';
 import { getAuthUserEmail } from '#/utils/session.server';
 import { canAccessQueue } from '#/lib/permission';
+import { getQueueNameFromUrl } from '#/lib/queue';
 
 export const Route = createFileRoute('/api/queues/$queueUrl')({
   server: {
@@ -27,7 +28,7 @@ export const Route = createFileRoute('/api/queues/$queueUrl')({
           const deadLetterSourceQueues =
             await listDeadLetterSourceQueues(decodedQueueUrl);
 
-          const name = decodedQueueUrl.split('/').pop() || decodedQueueUrl;
+          const name = getQueueNameFromUrl(decodedQueueUrl);
 
           return Response.json({
             url: decodedQueueUrl,
