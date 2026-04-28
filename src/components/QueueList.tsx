@@ -237,6 +237,8 @@ export default function QueueList() {
   const nextToken = data?.nextToken;
   const hasMore = !!nextToken;
   const loading = isLoading || isFetching;
+  const errorMessage =
+    error instanceof Error ? error.message : 'Failed to fetch queues';
 
   const handleNextPage = () => {
     if (nextToken) {
@@ -251,20 +253,6 @@ export default function QueueList() {
       setPage(1);
     }
   };
-
-  if (loading && queues.length === 0) {
-    return (
-      <div className="p-4 text-center dark:text-gray-300">
-        Loading queues...
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="p-4 text-center text-red-500">Error: {error.message}</div>
-    );
-  }
 
   return (
     <div>
@@ -346,7 +334,26 @@ export default function QueueList() {
             ))}
           </thead>
           <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-            {table.getRowModel().rows.length === 0 && !loading && (
+            {error && table.getRowModel().rows.length === 0 && (
+              <tr>
+                <td colSpan={5} className="px-6 py-8">
+                  <div className="text-center text-red-600 dark:text-red-400 p-8 border border-dashed border-red-300 dark:border-red-700 rounded-lg">
+                    Error: {errorMessage}
+                  </div>
+                </td>
+              </tr>
+            )}
+            {loading && table.getRowModel().rows.length === 0 && !error && (
+              <tr>
+                <td
+                  colSpan={5}
+                  className="px-6 py-8 text-center dark:text-gray-300"
+                >
+                  Loading queues...
+                </td>
+              </tr>
+            )}
+            {table.getRowModel().rows.length === 0 && !loading && !error && (
               <tr>
                 <td colSpan={5} className="px-6 py-8">
                   <div className="text-center dark:text-gray-300 p-8 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg">

@@ -150,9 +150,8 @@ export const Route = createFileRoute('/api/queues/$queueUrl/redrive-all')({
             );
           }
 
-          const approximateNumberOfMessagesMoved = await cancelMessageMoveTask(
-            taskHandleToCancel,
-          );
+          const approximateNumberOfMessagesMoved =
+            await cancelMessageMoveTask(taskHandleToCancel);
 
           return Response.json({
             success: true,

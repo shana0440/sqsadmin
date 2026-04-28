@@ -167,7 +167,9 @@ export default function QueueDetail({
       const response = await fetch(`/api/queues/${queueUrl}/redrive-all`);
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch redrive task status: ${response.statusText}`);
+        throw new Error(
+          `Failed to fetch redrive task status: ${response.statusText}`,
+        );
       }
 
       return response.json();
@@ -177,7 +179,8 @@ export default function QueueDetail({
     queryKey: redriveTaskStatusQueryKey,
     queryFn: fetchRedriveTaskStatus,
     enabled: isDeadLetterQueue,
-    refetchInterval: (query) => (query.state.data?.hasRunningTask ? 5000 : false),
+    refetchInterval: (query) =>
+      query.state.data?.hasRunningTask ? 5000 : false,
   });
 
   const handleOpenRedriveModal = (message: Message) => {
@@ -590,8 +593,8 @@ export default function QueueDetail({
               <div className="mt-3">
                 <div className="text-sm text-green-700 dark:text-green-400">
                   Redrive task is currently running
-                  {typeof redriveTaskStatus.runningTask?.ApproximateNumberOfMessagesMoved ===
-                    'number' &&
+                  {typeof redriveTaskStatus.runningTask
+                    ?.ApproximateNumberOfMessagesMoved === 'number' &&
                   typeof redriveTaskStatus.runningTask
                     ?.ApproximateNumberOfMessagesToMove === 'number'
                     ? ` (${redriveTaskStatus.runningTask.ApproximateNumberOfMessagesMoved}/${redriveTaskStatus.runningTask.ApproximateNumberOfMessagesToMove} moved)`
