@@ -1,11 +1,20 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Select } from '@headlessui/react';
 import { useQuery } from '@tanstack/react-query';
+import {
+  type ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  getSortedRowModel,
+  type SortingState,
+  useReactTable,
+} from '@tanstack/react-table';
 import { Link } from '@tanstack/react-router';
 import { QueueInfo } from '#/lib/sqs';
 import SystemFilterCombobox from './SystemFilterCombobox';
 import ChevronDownIcon from './icons/ChevronDownIcon';
 import SearchIcon from './icons/SearchIcon';
+import SortIndicator from './SortIndicator';
 
 type QueueListResponse = {
   items: QueueInfo[];
@@ -72,6 +81,7 @@ export default function QueueList() {
   const [systemFilterText, setSystemFilterText] = useState('');
   const [environmentFilter, setEnvironmentFilter] = useState('');
   const [textFilter, setTextFilter] = useState('');
+  const [sorting, setSorting] = useState<SortingState>([]);
   const PAGE_SIZE = 100;
 
   const { data, error, isLoading, isFetching } = useQuery({
@@ -99,16 +109,131 @@ export default function QueueList() {
   const allQueues = data?.items ?? [];
   const systemNames = systemsData?.items ?? [];
   const environmentNames = environmentsData?.items ?? [];
-  const queues = showDlqOnly
-    ? allQueues.filter((q) => q.deadLetterSourceQueues.length > 0)
-    : allQueues;
+  const queues = useMemo(
+    () =>
+      showDlqOnly
+        ? allQueues.filter((q) => q.deadLetterSourceQueues.length > 0)
+        : allQueues,
+    [allQueues, showDlqOnly],
+  );
   const normalizedTextFilter = textFilter.trim().toLowerCase();
-  const filteredQueues =
-    normalizedTextFilter === ''
-      ? queues
-      : queues.filter((queue) =>
-          queue.name.toLowerCase().includes(normalizedTextFilter),
-        );
+  const filteredQueues = useMemo(
+    () =>
+      normalizedTextFilter === ''
+        ? queues
+        : queues.filter((queue) =>
+            queue.name.toLowerCase().includes(normalizedTextFilter),
+          ),
+    [normalizedTextFilter, queues],
+  );
+  const columns = useMemo<ColumnDef<QueueInfo>[]>(
+    () => [
+      {
+        id: 'name',
+        accessorKey: 'name',
+        header: ({ column }) => (
+          <button
+            type="button"
+            onClick={column.getToggleSortingHandler()}
+            className="inline-flex items-center gap-1 cursor-pointer"
+          >
+            Queue Name
+            <SortIndicator direction={column.getIsSorted()} />
+          </button>
+        ),
+        cell: ({ row }) => (
+          <>
+            {row.original.name}
+            {row.original.deadLetterSourceQueues.length > 0 && (
+              <span className="ml-2 px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100">
+                DLQ
+              </span>
+            )}
+          </>
+        ),
+      },
+      {
+        id: 'type',
+        header: 'Type',
+        enableSorting: false,
+        cell: ({ row }) => {
+          const isFifo = row.original.attributes?.FifoQueue === 'true';
+
+          return isFifo ? (
+            <span className="px-2 py-1 text-xs font-medium rounded-full bg-indigo-100 text-indigo-800 dark:bg-indigo-800 dark:text-indigo-100">
+              FIFO
+            </span>
+          ) : (
+            <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100">
+              Standard
+            </span>
+          );
+        },
+      },
+      {
+        id: 'messagesAvailable',
+        accessorFn: (row) =>
+          Number(row.attributes?.ApproximateNumberOfMessages ?? '0'),
+        header: ({ column }) => (
+          <button
+            type="button"
+            onClick={column.getToggleSortingHandler()}
+            className="inline-flex items-center gap-1 cursor-pointer"
+          >
+            Messages Available
+            <SortIndicator direction={column.getIsSorted()} />
+          </button>
+        ),
+        cell: ({ row }) =>
+          row.original.attributes?.ApproximateNumberOfMessages || '0',
+      },
+      {
+        id: 'messagesInFlight',
+        accessorFn: (row) =>
+          Number(row.attributes?.ApproximateNumberOfMessagesNotVisible ?? '0'),
+        header: ({ column }) => (
+          <button
+            type="button"
+            onClick={column.getToggleSortingHandler()}
+            className="inline-flex items-center gap-1 cursor-pointer"
+          >
+            Messages In Flight
+            <SortIndicator direction={column.getIsSorted()} />
+          </button>
+        ),
+        cell: ({ row }) =>
+          row.original.attributes?.ApproximateNumberOfMessagesNotVisible || '0',
+      },
+      {
+        id: 'actions',
+        header: 'Actions',
+        enableSorting: false,
+        cell: ({ row }) => {
+          const encodedUrl = btoa(row.original.url);
+
+          return (
+            <Link
+              to="/queues/$queueUrl"
+              params={{ queueUrl: encodedUrl }}
+              className="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              View
+            </Link>
+          );
+        },
+      },
+    ],
+    [],
+  );
+  const table = useReactTable({
+    data: filteredQueues,
+    columns,
+    state: { sorting },
+    onSortingChange: setSorting,
+    autoResetAll: false,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+  });
   const nextToken = data?.nextToken;
   const hasMore = !!nextToken;
   const loading = isLoading || isFetching;
@@ -201,41 +326,27 @@ export default function QueueList() {
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead className="bg-gray-50 dark:bg-gray-800">
-            <tr>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-              >
-                Queue Name
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-              >
-                Type
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-              >
-                Messages Available
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-              >
-                Messages In Flight
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-              >
-                Actions
-              </th>
-            </tr>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <tr key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <th
+                    key={header.id}
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                  >
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext(),
+                        )}
+                  </th>
+                ))}
+              </tr>
+            ))}
           </thead>
           <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-            {filteredQueues.length === 0 && !loading && (
+            {table.getRowModel().rows.length === 0 && !loading && (
               <tr>
                 <td colSpan={5} className="px-6 py-8">
                   <div className="text-center dark:text-gray-300 p-8 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg">
@@ -260,50 +371,22 @@ export default function QueueList() {
                 </td>
               </tr>
             )}
-            {filteredQueues.map((queue) => {
-              const encodedUrl = btoa(queue.url);
-              const isFifo = queue.attributes?.FifoQueue === 'true';
-
-              return (
-                <tr key={queue.url}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                    {queue.name}
-                    {queue.deadLetterSourceQueues.length > 0 && (
-                      <span className="ml-2 px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100">
-                        DLQ
-                      </span>
-                    )}
+            {table.getRowModel().rows.map((row) => (
+              <tr key={row.id}>
+                {row.getVisibleCells().map((cell) => (
+                  <td
+                    key={cell.id}
+                    className={`px-6 py-4 whitespace-nowrap text-sm ${
+                      cell.column.id === 'name'
+                        ? 'font-medium text-gray-900 dark:text-white'
+                        : 'text-gray-500 dark:text-gray-400'
+                    }`}
+                  >
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    {isFifo ? (
-                      <span className="px-2 py-1 text-xs font-medium rounded-full bg-indigo-100 text-indigo-800 dark:bg-indigo-800 dark:text-indigo-100">
-                        FIFO
-                      </span>
-                    ) : (
-                      <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100">
-                        Standard
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    {queue.attributes?.ApproximateNumberOfMessages || '0'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    {queue.attributes?.ApproximateNumberOfMessagesNotVisible ||
-                      '0'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 flex space-x-2">
-                    <Link
-                      to="/queues/$queueUrl"
-                      params={{ queueUrl: encodedUrl }}
-                      className="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                    >
-                      View
-                    </Link>
-                  </td>
-                </tr>
-              );
-            })}
+                ))}
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
